@@ -1,0 +1,168 @@
+use crate::messages::MessageId;
+
+#[derive(Debug, Clone)]
+pub struct QueueIndexRange {
+    pub from_id: MessageId,
+    pub to_id: MessageId,
+}
+
+impl QueueIndexRange {
+    pub fn restore(from_id: MessageId, to_id: MessageId) -> QueueIndexRange {
+        QueueIndexRange { from_id, to_id }
+    }
+
+    pub fn new(start_id: MessageId) -> QueueIndexRange {
+        QueueIndexRange {
+            from_id: start_id,
+            to_id: start_id - 1,
+        }
+    }
+
+    pub fn init(&mut self) {
+        self.to_id = self.from_id - 1;
+    }
+
+    pub fn remove(&mut self, message_id: MessageId) -> Option<QueueIndexRange> {
+        if self.from_id == message_id {
+            self.from_id += 1;
+            return None;
+        }
+
+        if self.to_id == message_id {
+            self.to_id -= 1;
+            return None;
+        }
+
+        let new_item = QueueIndexRange {
+            from_id: message_id + 1,
+            to_id: self.to_id,
+        };
+
+        self.to_id = message_id - 1;
+
+        return Some(new_item);
+    }
+
+    pub fn dequeue(&mut self) -> Option<MessageId> {
+        if self.from_id > self.to_id {
+            return None;
+        }
+
+        let result = self.from_id;
+        self.from_id = self.from_id + 1;
+        Some(result)
+    }
+
+    pub fn peek(&self) -> Option<MessageId> {
+        if self.from_id > self.to_id {
+            return None;
+        }
+
+        return Some(self.from_id);
+    }
+
+    pub fn enqueue(&mut self, id: MessageId) {
+        if self.is_empty() {
+            self.from_id = id;
+            self.to_id = id;
+            return;
+        }
+
+        if self.to_id + 1 == id {
+            self.to_id = id;
+        } else if self.from_id - 1 == id {
+            self.from_id = id
+        } else {
+            panic!(
+                "Something went wrong. Invalid interval is chosen. Range: {:?}. NewValue: {}",
+                self, id
+            );
+        }
+    }
+
+    pub fn try_merge_next(&mut self, next_item: &QueueIndexRange) -> bool {
+        if self.to_id + 1 == next_item.from_id {
+            self.to_id = next_item.to_id;
+            return true;
+        }
+
+        return false;
+    }
+
+    pub fn is_my_interval(&self, id: MessageId) -> bool {
+        self.is_empty() || (id >= self.from_id && id <= self.to_id + 1)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.to_id < self.from_id
+    }
+
+    pub fn is_before(&self, id: MessageId) -> bool {
+        id < self.from_id - 1
+    }
+
+    #[cfg(test)]
+    pub fn to_string(&self) -> String {
+        if self.is_empty() {
+            return "EMPTY".to_string();
+        }
+
+        return format!("{} - {}", self.from_id, self.to_id);
+    }
+
+    pub fn len(&self) -> MessageId {
+        self.to_id - self.from_id + 1
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_queue() {
+        let index_range = QueueIndexRange::new(0);
+
+        assert_eq!(index_range.len(), 0);
+        assert_eq!(0, index_range.from_id);
+        assert_eq!(-1, index_range.to_id);
+
+        println!("{}", index_range.to_string());
+    }
+
+    #[test]
+    fn test_one_enqueue_one_dequeue() {
+        let mut index_range = QueueIndexRange::new(0);
+
+        index_range.enqueue(0);
+
+        assert_eq!(index_range.len(), 1);
+        assert_eq!(0, index_range.from_id);
+        assert_eq!(0, index_range.to_id);
+
+        let res = index_range.dequeue();
+
+        assert_eq!(index_range.len(), 0);
+        assert_eq!(1, index_range.from_id);
+        assert_eq!(0, index_range.to_id);
+        assert_eq!(0, res.unwrap());
+    }
+
+    #[test]
+    fn test_two_enqueue_two_dequeue() {
+        let mut index_range = QueueIndexRange::new(5);
+
+        index_range.enqueue(5);
+        index_range.enqueue(6);
+
+        assert_eq!(index_range.len(), 2);
+
+        let res = index_range.dequeue();
+        assert_eq!(5, res.unwrap());
+        let res = index_range.dequeue();
+        assert_eq!(6, res.unwrap());
+
+        let res = index_range.dequeue();
+        assert_eq!(true, res.is_none());
+    }
+}

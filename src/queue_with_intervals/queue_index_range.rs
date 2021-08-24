@@ -1,5 +1,11 @@
 use crate::messages::MessageId;
 
+
+pub enum QueueIndexRangeCompare{
+    Below, Inside, Above
+}
+
+
 #[derive(Debug, Clone)]
 pub struct QueueIndexRange {
     pub from_id: MessageId,
@@ -101,6 +107,24 @@ impl QueueIndexRange {
         id < self.from_id - 1
     }
 
+
+    pub fn compare_with(&self, id: MessageId)->Option<QueueIndexRangeCompare>{
+
+        if self.is_empty(){
+            return None;
+        }
+
+        if id < self.from_id{
+            return Some(QueueIndexRangeCompare::Below);
+        }
+
+        if id > self.to_id{
+            return Some(QueueIndexRangeCompare::Above);
+        }
+
+        return Some(QueueIndexRangeCompare::Inside);
+    }
+
     #[cfg(test)]
     pub fn to_string(&self) -> String {
         if self.is_empty() {
@@ -164,5 +188,26 @@ mod tests {
 
         let res = index_range.dequeue();
         assert_eq!(true, res.is_none());
+    }
+
+
+    #[test]
+    fn test_match_case() {
+        let mut index_range = QueueIndexRange::restore(5, 10);
+
+
+        let result = index_range.compare_with(4).unwrap();
+        assert_eq!(true, matches!(QueueIndexRangeCompare::Below, result));
+
+
+        let result = index_range.compare_with(5).unwrap();
+        assert_eq!(true, matches!(QueueIndexRangeCompare::Inside, result));
+
+        let result = index_range.compare_with(10).unwrap();
+        assert_eq!(true, matches!(QueueIndexRangeCompare::Inside, result));
+
+        let result = index_range.compare_with(11).unwrap();
+        assert_eq!(true, matches!(QueueIndexRangeCompare::Above, result));
+
     }
 }

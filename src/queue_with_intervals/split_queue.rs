@@ -70,6 +70,7 @@ impl QueueWithIntervals {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,6 +147,6 @@ mod tests {
         let right_q = split.1.unwrap();
         assert_eq!(104, right_q.get_min_id().unwrap());
         assert_eq!(104, right_q.get_max_id().unwrap());
-        assert_eq!(1, left_q.intervals.len());
+        assert_eq!(1, right_q.intervals.len());
     }
 }

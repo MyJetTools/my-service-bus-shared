@@ -1,2 +1,2 @@
-pub use message::MessageId;
-mod message;
+pub use message_id::MessageId;
+mod message_id;

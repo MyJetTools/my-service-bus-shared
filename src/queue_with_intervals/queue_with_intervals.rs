@@ -44,7 +44,7 @@ impl QueueWithIntervals {
         return self.intervals.len();
     }
 
-    fn get_my_interval_index(&self, message_id: i64) -> Option<usize> {
+    fn get_my_interval_index(&self, message_id: MessageId) -> Option<usize> {
         for i in 0..self.intervals.len() {
             let interval = &self.intervals[i];
             if interval.is_my_interval(message_id) {
@@ -54,7 +54,7 @@ impl QueueWithIntervals {
         return None;
     }
 
-    fn get_interval_index(&mut self, message_id: i64) -> usize {
+    fn get_interval_index(&mut self, message_id: MessageId) -> usize {
         match self.get_my_interval_index(message_id) {
             Some(index) => return index,
             None => {
@@ -71,7 +71,7 @@ impl QueueWithIntervals {
         }
     }
 
-    pub fn remove(&mut self, message_id: i64) -> bool {
+    pub fn remove(&mut self, message_id: MessageId) -> bool {
         let found_interval = self.get_my_interval_index(message_id);
 
         if let Some(index) = found_interval {
@@ -93,7 +93,7 @@ impl QueueWithIntervals {
         return false;
     }
 
-    pub fn enqueue(&mut self, message_id: i64) {
+    pub fn enqueue(&mut self, message_id: MessageId) {
         let index = self.get_interval_index(message_id);
 
         self.intervals[index].enqueue(message_id);

@@ -71,7 +71,6 @@ impl QueueWithIntervals {
         }
     }
 
-    #[cfg(test)]
     pub fn remove(&mut self, message_id: i64) -> bool {
         let found_interval = self.get_my_interval_index(message_id);
 

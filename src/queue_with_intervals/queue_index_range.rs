@@ -193,21 +193,21 @@ mod tests {
 
     #[test]
     fn test_match_case() {
-        let mut index_range = QueueIndexRange::restore(5, 10);
+        let index_range = QueueIndexRange::restore(5, 10);
 
 
-        let result = index_range.compare_with(4).unwrap();
-        assert_eq!(true, matches!(QueueIndexRangeCompare::Below, result));
+        let _result = index_range.compare_with(4).unwrap();
+        assert_eq!(true, matches!(QueueIndexRangeCompare::Below, _result));
 
 
-        let result = index_range.compare_with(5).unwrap();
-        assert_eq!(true, matches!(QueueIndexRangeCompare::Inside, result));
+        let _result = index_range.compare_with(5).unwrap();
+        assert_eq!(true, matches!(QueueIndexRangeCompare::Inside, _result));
 
-        let result = index_range.compare_with(10).unwrap();
-        assert_eq!(true, matches!(QueueIndexRangeCompare::Inside, result));
+        let _result = index_range.compare_with(10).unwrap();
+        assert_eq!(true, matches!(QueueIndexRangeCompare::Inside, _result));
 
-        let result = index_range.compare_with(11).unwrap();
-        assert_eq!(true, matches!(QueueIndexRangeCompare::Above, result));
+        let _result = index_range.compare_with(11).unwrap();
+        assert_eq!(true, matches!(QueueIndexRangeCompare::Above, _result));
 
     }
 }

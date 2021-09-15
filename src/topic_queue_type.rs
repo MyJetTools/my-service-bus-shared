@@ -5,19 +5,17 @@ pub enum TopicQueueType {
     PermanentWithSingleConnection = 2,
 }
 
-impl Into<TopicQueueType> for u8 {
-    fn into(self) -> TopicQueueType {
-        match self {
+impl TopicQueueType {
+    pub fn from_u8(src: u8) -> TopicQueueType {
+        match src {
             0 => TopicQueueType::Permanent,
             1 => TopicQueueType::DeleteOnDisconnect,
             2 => TopicQueueType::PermanentWithSingleConnection,
             _ => TopicQueueType::DeleteOnDisconnect,
         }
     }
-}
 
-impl Into<u8> for TopicQueueType {
-    fn into(self) -> u8 {
-        self as u8
+    pub fn into_u8(&self) -> u8 {
+        *self as u8
     }
 }

@@ -50,7 +50,7 @@ impl CompressedPageBuilder {
 pub enum CompressedPageReaderError {
     ParseIntError(ParseIntError),
     ZipError(ZipError),
-    Other(String),
+    InvalidSingleFileCompressedPage,
 }
 
 impl From<ZipError> for CompressedPageReaderError {
@@ -124,9 +124,7 @@ impl CompressedPageReader {
         let mut zip_file = self.zip_archive.by_index(0)?;
 
         if zip_file.name() != "d" {
-            return Err(CompressedPageReaderError::Other(
-                "Single file has to have d name in zipped page".to_string(),
-            ));
+            return Err(CompressedPageReaderError::InvalidSingleFileCompressedPage);
         }
         let mut buffer = [0u8; 1024 * 1024];
 

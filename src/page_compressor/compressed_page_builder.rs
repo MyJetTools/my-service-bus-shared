@@ -167,6 +167,8 @@ mod tests {
 
         let mut reader = CompressedPageReader::new(compressed).unwrap();
 
+        assert_eq!(2, reader.get_files_amount());
+
         let (msg_id, buf) = reader.get_next_page().unwrap().unwrap();
 
         assert_eq!(1, msg_id);

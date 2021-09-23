@@ -1,7 +1,7 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TopicsSnapshotProtobufModel {
     #[prost(message, repeated, tag = "1")]
-    pub data: Vec<TopicSnaphotProtobufModel>,
+    pub data: Vec<TopicSnapshotProtobufModel>,
 }
 
 impl TopicsSnapshotProtobufModel {
@@ -11,7 +11,7 @@ impl TopicsSnapshotProtobufModel {
 }
 
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TopicSnaphotProtobufModel {
+pub struct TopicSnapshotProtobufModel {
     #[prost(string, tag = "1")]
     pub topic_id: ::prost::alloc::string::String,
 

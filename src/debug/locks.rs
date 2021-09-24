@@ -1,51 +1,67 @@
+use std::collections::{HashMap, VecDeque};
+
 #[derive(Clone, Debug)]
 pub struct LockItem {
     pub id: i64,
-    pub data: String,
+    pub data: VecDeque<String>,
     pub date: i64,
 }
 
+impl LockItem {
+    pub fn to_string(&self) -> String {
+        let mut result: Vec<u8> = Vec::new();
+
+        for itm in &self.data {
+            if result.len() > 0 {
+                result.extend_from_slice("->".as_bytes());
+            }
+
+            result.extend_from_slice(itm.as_bytes());
+        }
+
+        String::from_utf8(result).unwrap()
+    }
+}
+
 pub struct Locks {
-    id: i64,
-    data: Vec<LockItem>,
+    data: HashMap<i64, LockItem>,
 }
 
 impl Locks {
     pub fn new() -> Self {
         Self {
-            id: 0,
-            data: Vec::new(),
+            data: HashMap::new(),
         }
     }
 
-    fn get_new_id(&mut self) -> i64 {
-        self.id += 1;
-        self.id
+    pub fn new_lock(&mut self, id: i64, process: String) {
+        if self.data.contains_key(&id) {
+            self.data.insert(
+                id,
+                LockItem {
+                    id,
+                    data: VecDeque::new(),
+                    date: crate::date_time::DateTimeAsMicroseconds::now().unix_microseconds,
+                },
+            );
+        }
+
+        self.data.get_mut(&id).unwrap().data.push_back(process);
     }
 
-    pub fn new_lock(&mut self, data: String) -> i64 {
-        let id = self.get_new_id();
+    pub fn exit(&mut self, id: i64) {
+        let found = self.data.get_mut(&id);
 
-        self.data.push(LockItem {
-            id,
-            data,
-            date: crate::date_time::DateTimeAsMicroseconds::now().unix_microseconds,
-        });
-
-        id
-    }
-
-    pub fn remove(&mut self, id: i64) {
-        let index = self.data.iter().position(|itm| itm.id == id);
-        if let Some(index) = index {
-            self.data.remove(index);
+        if let Some(found) = found {
+            let index = found.data.len();
+            found.data.remove(index - 1);
         }
     }
 
     pub fn get_all(&self) -> Vec<LockItem> {
         let mut result = Vec::new();
 
-        for item in &self.data {
+        for item in self.data.values() {
             result.push(item.clone());
         }
 

@@ -35,7 +35,7 @@ impl Locks {
     }
 
     pub fn new_lock(&mut self, id: i64, process: String) {
-        if self.data.contains_key(&id) {
+        if !self.data.contains_key(&id) {
             self.data.insert(
                 id,
                 LockItem {

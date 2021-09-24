@@ -25,7 +25,7 @@ impl CompressedPageBuilder {
         result
     }
 
-    pub fn add_page(&mut self, msg_id: MessageId, payload: &[u8]) -> Result<(), ZipError> {
+    pub fn add_message(&mut self, msg_id: MessageId, payload: &[u8]) -> Result<(), ZipError> {
         let file_name = format!("{}", msg_id);
 
         self.zip_writer.start_file(file_name, self.options)?;
@@ -83,7 +83,7 @@ impl CompressedPageReader {
         return self.zip_archive.len();
     }
 
-    pub fn get_next_page(
+    pub fn get_next_message(
         &mut self,
     ) -> Result<Option<(MessageId, Vec<u8>)>, CompressedPageReaderError> {
         if self.file_index >= self.zip_archive.len() {

@@ -41,4 +41,14 @@ impl Locks {
             self.data.remove(index);
         }
     }
+
+    pub fn get_all(&self) -> Vec<LockItem> {
+        let mut result = Vec::new();
+
+        for item in &self.data {
+            result.push(item.clone());
+        }
+
+        result
+    }
 }

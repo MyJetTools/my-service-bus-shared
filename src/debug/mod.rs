@@ -1,3 +1,3 @@
 mod locks;
 
-pub use locks::Locks;
+pub use locks::{LockItem, Locks};

@@ -21,6 +21,12 @@ impl LockItem {
 
         String::from_utf8(result).unwrap()
     }
+
+    fn do_exit(&mut self) -> bool {
+        let index = self.data.len();
+        self.data.remove(index - 1);
+        return self.data.len() == 0;
+    }
 }
 
 pub struct Locks {
@@ -50,11 +56,18 @@ impl Locks {
     }
 
     pub fn exit(&mut self, id: i64) {
-        let found = self.data.get_mut(&id);
+        let mut remove = false;
 
-        if let Some(found) = found {
-            let index = found.data.len();
-            found.data.remove(index - 1);
+        {
+            let found = self.data.get_mut(&id);
+
+            if let Some(found) = found {
+                remove = found.do_exit();
+            }
+        }
+
+        if remove {
+            self.data.remove(&id);
         }
     }
 

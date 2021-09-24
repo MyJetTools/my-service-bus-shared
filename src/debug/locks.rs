@@ -23,7 +23,7 @@ impl Locks {
         self.id
     }
 
-    pub fn new_lock(&mut self, data: String) {
+    pub fn new_lock(&mut self, data: String) -> i64 {
         let id = self.get_new_id();
 
         self.data.push(LockItem {
@@ -31,6 +31,8 @@ impl Locks {
             data,
             date: crate::date_time::DateTimeAsMicroseconds::now().unix_microseconds,
         });
+
+        id
     }
 
     pub fn remove(&mut self, id: i64) {

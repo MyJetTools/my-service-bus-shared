@@ -1,3 +1,5 @@
+use prost::{DecodeError, EncodeError};
+
 use crate::bcl::BclDateTime;
 
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -12,6 +14,16 @@ pub struct MessageProtobufModel {
     pub metadata: Vec<MessageMetaDataProtobufModel>,
 }
 
+impl MessageProtobufModel {
+    pub fn parse(payload: &[u8]) -> Result<Self, DecodeError> {
+        prost::Message::decode(payload)
+    }
+
+    pub fn serialize(&self, dest: &mut Vec<u8>) -> Result<(), EncodeError> {
+        prost::Message::encode(self, dest)
+    }
+}
+
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MessagesProtobufModel {
     #[prost(message, repeated, tag = "1")]
@@ -19,14 +31,12 @@ pub struct MessagesProtobufModel {
 }
 
 impl MessagesProtobufModel {
-    pub fn parse(payload: &[u8]) -> Self {
-        prost::Message::decode(payload).unwrap()
+    pub fn parse(payload: &[u8]) -> Result<Self, DecodeError> {
+        prost::Message::decode(payload)
     }
 
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut encoded_payload: Vec<u8> = Vec::new();
-        prost::Message::encode(self, &mut encoded_payload).unwrap();
-        encoded_payload
+    pub fn serialize(&self, dest: &mut Vec<u8>) -> Result<(), EncodeError> {
+        prost::Message::encode(self, dest)
     }
 }
 

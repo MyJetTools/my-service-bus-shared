@@ -91,6 +91,10 @@ impl CompressedPageReader {
     pub fn decompress_as_single_file(&mut self) -> Result<Vec<u8>, CompressedPageReaderError> {
         let mut page_buffer: Vec<u8> = Vec::new();
 
+        if self.zip_archive.len() == 0 {
+            return Err(CompressedPageReaderError::InvalidSingleFileCompressedPage);
+        }
+
         let mut zip_file = self.zip_archive.by_index(0)?;
 
         if zip_file.name() != "d" {

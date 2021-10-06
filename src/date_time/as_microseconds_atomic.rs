@@ -24,6 +24,14 @@ impl AtomicDateTimeAsMicroseconds {
             .load(std::sync::atomic::Ordering::SeqCst)
     }
 
+    pub fn as_date_time(&self) -> DateTimeAsMicroseconds {
+        let unix_microseconds = self
+            .unix_microseconds
+            .load(std::sync::atomic::Ordering::SeqCst);
+
+        DateTimeAsMicroseconds::new(unix_microseconds)
+    }
+
     pub fn now() -> Self {
         let unix_microseconds = SystemTime::now()
             .duration_since(UNIX_EPOCH)

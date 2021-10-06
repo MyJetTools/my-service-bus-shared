@@ -1,8 +1,6 @@
-use std::{
-    io::{Cursor, Read, Write},
-    num::ParseIntError,
-};
+use std::{io::Write, num::ParseIntError};
 
+use prost::DecodeError;
 use zip::result::ZipError;
 
 use crate::MessageId;
@@ -51,6 +49,7 @@ pub enum CompressedPageReaderError {
     ParseIntError(ParseIntError),
     ZipError(ZipError),
     InvalidSingleFileCompressedPage,
+    DecodeError(DecodeError),
 }
 
 impl From<ZipError> for CompressedPageReaderError {
@@ -65,90 +64,16 @@ impl From<ParseIntError> for CompressedPageReaderError {
     }
 }
 
-pub struct CompressedPageReader {
-    zip_archive: zip::ZipArchive<Cursor<Vec<u8>>>,
-    file_index: usize,
-}
-
-impl CompressedPageReader {
-    pub fn new(zipped: Vec<u8>) -> Result<Self, ZipError> {
-        let zip_archive = zip::ZipArchive::new(Cursor::new(zipped))?;
-        Ok(Self {
-            zip_archive,
-            file_index: 0,
-        })
-    }
-
-    pub fn get_files_amount(&self) -> usize {
-        return self.zip_archive.len();
-    }
-
-    pub fn get_next_message(
-        &mut self,
-    ) -> Result<Option<(MessageId, Vec<u8>)>, CompressedPageReaderError> {
-        if self.file_index >= self.zip_archive.len() {
-            return Ok(None);
-        }
-
-        let mut zip_file = self.zip_archive.by_index(self.file_index)?;
-
-        let message_id = zip_file.name().parse::<i64>()?;
-
-        let mut result_buffer: Vec<u8> = Vec::new();
-
-        loop {
-            let mut buffer = [0u8; 1024 * 1024];
-
-            let read_size = zip_file.read(&mut buffer[..]);
-
-            if let Err(err) = read_size {
-                return Err(CompressedPageReaderError::ZipError(err.into()));
-            }
-
-            let read_size = read_size.unwrap();
-
-            if read_size == 0 {
-                break;
-            }
-
-            result_buffer.extend(&buffer[..read_size]);
-        }
-        self.file_index += 1;
-
-        Ok(Some((message_id, result_buffer)))
-    }
-
-    pub fn decompress_as_single_file(&mut self) -> Result<Vec<u8>, CompressedPageReaderError> {
-        let mut page_buffer: Vec<u8> = Vec::new();
-
-        let mut zip_file = self.zip_archive.by_index(0)?;
-
-        if zip_file.name() != "d" {
-            return Err(CompressedPageReaderError::InvalidSingleFileCompressedPage);
-        }
-        let mut buffer = [0u8; 1024 * 1024];
-
-        loop {
-            let read_size = zip_file.read(&mut buffer[..]);
-            if let Err(err) = read_size {
-                return Err(CompressedPageReaderError::ZipError(err.into()));
-            }
-
-            let read_size = read_size.unwrap();
-
-            if read_size == 0 {
-                break;
-            }
-
-            page_buffer.extend(&buffer[..read_size]);
-        }
-
-        Ok(page_buffer)
+impl From<DecodeError> for CompressedPageReaderError {
+    fn from(src: DecodeError) -> Self {
+        Self::DecodeError(src)
     }
 }
 
 #[cfg(test)]
 mod tests {
+
+    use crate::page_compressor::CompressedPageReader;
 
     use super::*;
 

@@ -23,3 +23,13 @@ impl super::BclToUnixMicroseconds for BclDateTime {
         super::bcl_date_time_utils::to_date_time(self)
     }
 }
+
+impl From<DateTimeAsMicroseconds> for BclDateTime {
+    fn from(src: DateTimeAsMicroseconds) -> Self {
+        BclDateTime {
+            value: src.unix_microseconds * 20,
+            scale: super::bcl_date_time_utils::SCALE_TICKS,
+            kind: 0,
+        }
+    }
+}

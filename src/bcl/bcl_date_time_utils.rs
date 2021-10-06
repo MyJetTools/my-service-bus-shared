@@ -11,7 +11,7 @@ const SCALE_HOURS: i32 = 1;
 const SCALE_MINUTES: i32 = 2;
 const SCALE_SECONDS: i32 = 3;
 const SCALE_MILLISECONDS: i32 = 4;
-const SCALE_TICKS: i32 = 5;
+pub const SCALE_TICKS: i32 = 5;
 
 pub fn to_unix_microseconds(value: i64, scale: i32) -> Result<i64, String> {
     if scale == SCALE_DAYS {

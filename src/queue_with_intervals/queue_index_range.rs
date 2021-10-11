@@ -98,13 +98,18 @@ impl QueueIndexRange {
             return;
         }
 
-        if self.to_id + 1 == id {
+        if self.from_id >= id && self.to_id <= id {
+            panic!(
+                "Warning.... Something went wrong. We are enqueieng the Value {} wich is already in the queue. Range: {:?}. ",
+                id, self, 
+            );
+        } else if self.to_id + 1 == id {
             self.to_id = id;
         } else if self.from_id - 1 == id {
             self.from_id = id
         } else {
             panic!(
-                "Something went wrong. Invalid interval is chosen. Range: {:?}. NewValue: {}",
+                "Something went wrong. Invalid interval is chosen to enqueue. Range: {:?}. NewValue: {}",
                 self, id
             );
         }

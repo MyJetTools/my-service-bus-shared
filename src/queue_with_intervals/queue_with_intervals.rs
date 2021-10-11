@@ -34,45 +34,18 @@ impl QueueWithIntervals {
         self.intervals.extend(intervals)
     }
 
-    fn get_index_to_insert(&self, message_id: MessageId) -> usize {
-        for i in 0..self.intervals.len() {
-            if self.intervals[i].is_before(message_id) {
-                return i;
-            }
-        }
-
-        return self.intervals.len();
-    }
-
-    fn get_my_interval_index(&self, message_id: MessageId) -> Option<usize> {
+    fn get_interval_index_to_remove(&self, message_id: MessageId) -> Option<usize> {
         for i in 0..self.intervals.len() {
             let interval = &self.intervals[i];
-            if interval.is_my_interval(message_id) {
+            if interval.is_my_interval_to_remove(message_id) {
                 return Some(i);
             }
         }
         return None;
     }
 
-    fn get_interval_index(&mut self, message_id: MessageId) -> usize {
-        match self.get_my_interval_index(message_id) {
-            Some(index) => return index,
-            None => {
-                let index = self.get_index_to_insert(message_id);
-
-                let new_index_range = QueueIndexRange::new(0);
-                if index >= self.intervals.len() {
-                    self.intervals.push(new_index_range)
-                } else {
-                    self.intervals.insert(index, new_index_range);
-                }
-                return index;
-            }
-        }
-    }
-
     pub fn remove(&mut self, message_id: MessageId) -> bool {
-        let found_interval = self.get_my_interval_index(message_id);
+        let found_interval = self.get_interval_index_to_remove(message_id);
 
         if let Some(index) = found_interval {
             let new_item = self.intervals[index].remove(message_id);
@@ -94,21 +67,53 @@ impl QueueWithIntervals {
     }
 
     pub fn enqueue(&mut self, message_id: MessageId) {
-        let index = self.get_interval_index(message_id);
+        if self.intervals.len() == 0 {
+            let item = QueueIndexRange::new_with_single_value(message_id);
+            self.intervals.push(item);
+            return;
+        }
 
-        self.intervals[index].enqueue(message_id);
+        let mut found_index = None;
 
-        if index > 0 {
-            let element = self.intervals[index].clone();
-            if self.intervals[index - 1].try_merge_next(&element) {
-                self.intervals.remove(index);
+        for index in 0..self.intervals.len() {
+            let el = self.intervals.get_mut(index).unwrap();
+
+            if el.try_join(message_id) {
+                found_index = Some(index);
+                break;
             }
-        } else {
-            if self.intervals.len() > 1 {
-                let next_element = self.intervals[index + 1].clone();
-                if self.intervals[index].try_merge_next(&next_element) {
-                    self.intervals.remove(index + 1);
+
+            if message_id < el.from_id - 1 {
+                let item = QueueIndexRange::new_with_single_value(message_id);
+                self.intervals.insert(index, item);
+                found_index = Some(index);
+                break;
+            }
+        }
+
+        match found_index {
+            Some(index_we_handeled) => {
+                if index_we_handeled > 0 {
+                    let current_el = self.intervals.get(index_we_handeled).unwrap().clone();
+                    let before_el = self.intervals.get_mut(index_we_handeled - 1).unwrap();
+                    if before_el.try_join_with_the_next_one(current_el) {
+                        self.intervals.remove(index_we_handeled);
+                    }
                 }
+
+                if index_we_handeled < self.intervals.len() - 1 {
+                    let after_el = self.intervals.get(index_we_handeled + 1).unwrap().clone();
+
+                    let current_el = self.intervals.get_mut(index_we_handeled).unwrap();
+                    if current_el.try_join_with_the_next_one(after_el) {
+                        self.intervals.remove(index_we_handeled + 1);
+                    }
+                }
+            }
+            None => {
+                let item = QueueIndexRange::new_with_single_value(message_id);
+                self.intervals.push(item);
+                return;
             }
         }
     }
@@ -385,5 +390,22 @@ mod tests {
         assert_eq!(true, result.is_none());
 
         assert_eq!(0, queue.len());
+    }
+
+    #[test]
+    fn test_if_we_push_intervals_randomly_but_as_one_interval() {
+        let mut queue = QueueWithIntervals::new();
+
+        queue.enqueue(502);
+        queue.enqueue(503);
+        queue.enqueue(504);
+
+        queue.enqueue(508);
+        assert_eq!(queue.intervals.len(), 2);
+
+        queue.enqueue(506);
+        assert_eq!(queue.intervals.len(), 3);
+        queue.enqueue(507);
+        assert_eq!(queue.intervals.len(), 2);
     }
 }

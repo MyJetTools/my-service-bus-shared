@@ -1,10 +1,10 @@
 use crate::messages::MessageId;
 
-
-pub enum QueueIndexRangeCompare{
-    Below, Inside, Above
+pub enum QueueIndexRangeCompare {
+    Below,
+    Inside,
+    Above,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct QueueIndexRange {
@@ -17,11 +17,35 @@ impl QueueIndexRange {
         QueueIndexRange { from_id, to_id }
     }
 
-    pub fn new(start_id: MessageId) -> QueueIndexRange {
+    pub fn new_empty(start_id: MessageId) -> QueueIndexRange {
         QueueIndexRange {
             from_id: start_id,
             to_id: start_id - 1,
         }
+    }
+
+    pub fn new_with_single_value(value: MessageId) -> QueueIndexRange {
+        QueueIndexRange {
+            from_id: value,
+            to_id: value,
+        }
+    }
+
+    pub fn try_join_with_the_next_one(&mut self, next_one: QueueIndexRange) -> bool {
+        if self.to_id + 1 == next_one.from_id {
+            self.to_id = next_one.to_id;
+            return true;
+        }
+
+        return false;
+    }
+
+    pub fn is_my_interval_to_remove(&self, id: MessageId) -> bool {
+        if self.is_empty() {
+            panic!("We are trying to find interval to remove but we bumped empty interval");
+        }
+
+        id >= self.from_id && id <= self.to_id
     }
 
     pub fn init(&mut self) {
@@ -95,8 +119,23 @@ impl QueueIndexRange {
         return false;
     }
 
-    pub fn is_my_interval(&self, id: MessageId) -> bool {
-        self.is_empty() || (id >= self.from_id && id <= self.to_id + 1)
+    pub fn try_join(&mut self, id_to_join: MessageId) -> bool {
+        if self.is_empty() {
+            self.from_id = id_to_join;
+            self.to_id = id_to_join;
+        }
+
+        if id_to_join == self.from_id - 1 {
+            self.from_id = id_to_join;
+            return true;
+        }
+
+        if id_to_join == self.to_id + 1 {
+            self.to_id = id_to_join;
+            return true;
+        }
+
+        return false;
     }
 
     pub fn is_empty(&self) -> bool {
@@ -107,18 +146,16 @@ impl QueueIndexRange {
         id < self.from_id - 1
     }
 
-
-    pub fn compare_with(&self, id: MessageId)->Option<QueueIndexRangeCompare>{
-
-        if self.is_empty(){
+    pub fn compare_with(&self, id: MessageId) -> Option<QueueIndexRangeCompare> {
+        if self.is_empty() {
             return None;
         }
 
-        if id < self.from_id{
+        if id < self.from_id {
             return Some(QueueIndexRangeCompare::Below);
         }
 
-        if id > self.to_id{
+        if id > self.to_id {
             return Some(QueueIndexRangeCompare::Above);
         }
 
@@ -145,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_queue() {
-        let index_range = QueueIndexRange::new(0);
+        let index_range = QueueIndexRange::new_empty(0);
 
         assert_eq!(index_range.len(), 0);
         assert_eq!(0, index_range.from_id);
@@ -156,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_one_enqueue_one_dequeue() {
-        let mut index_range = QueueIndexRange::new(0);
+        let mut index_range = QueueIndexRange::new_empty(0);
 
         index_range.enqueue(0);
 
@@ -174,9 +211,8 @@ mod tests {
 
     #[test]
     fn test_two_enqueue_two_dequeue() {
-        let mut index_range = QueueIndexRange::new(5);
+        let mut index_range = QueueIndexRange::new_with_single_value(5);
 
-        index_range.enqueue(5);
         index_range.enqueue(6);
 
         assert_eq!(index_range.len(), 2);
@@ -190,15 +226,12 @@ mod tests {
         assert_eq!(true, res.is_none());
     }
 
-
     #[test]
     fn test_match_case() {
         let index_range = QueueIndexRange::restore(5, 10);
 
-
         let _result = index_range.compare_with(4).unwrap();
         assert_eq!(true, matches!(QueueIndexRangeCompare::Below, _result));
-
 
         let _result = index_range.compare_with(5).unwrap();
         assert_eq!(true, matches!(QueueIndexRangeCompare::Inside, _result));
@@ -208,6 +241,5 @@ mod tests {
 
         let _result = index_range.compare_with(11).unwrap();
         assert_eq!(true, matches!(QueueIndexRangeCompare::Above, _result));
-
     }
 }

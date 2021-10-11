@@ -6,6 +6,12 @@ pub enum QueueIndexRangeCompare {
     Above,
 }
 
+pub enum RemoveResult{
+    NoUpdate,
+    InsertNew(QueueIndexRange),
+    RemoveItem
+}
+
 #[derive(Debug, Clone)]
 pub struct QueueIndexRange {
     pub from_id: MessageId,
@@ -52,15 +58,24 @@ impl QueueIndexRange {
         self.to_id = self.from_id - 1;
     }
 
-    pub fn remove(&mut self, message_id: MessageId) -> Option<QueueIndexRange> {
+    pub fn remove(&mut self, message_id: MessageId) -> RemoveResult {
+
+
+        if self.from_id == message_id && self.to_id == message_id{
+            self.from_id += 1;
+
+            return RemoveResult::RemoveItem;
+        }
+
+
         if self.from_id == message_id {
             self.from_id += 1;
-            return None;
+            return RemoveResult::NoUpdate;
         }
 
         if self.to_id == message_id {
             self.to_id -= 1;
-            return None;
+            return RemoveResult::NoUpdate;
         }
 
         let new_item = QueueIndexRange {
@@ -70,7 +85,7 @@ impl QueueIndexRange {
 
         self.to_id = message_id - 1;
 
-        return Some(new_item);
+        return RemoveResult::InsertNew(new_item);
     }
 
     pub fn dequeue(&mut self) -> Option<MessageId> {

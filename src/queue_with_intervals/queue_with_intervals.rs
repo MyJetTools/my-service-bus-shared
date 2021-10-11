@@ -1,4 +1,7 @@
-use crate::{messages::MessageId, queue_with_intervals::queue_index_range::QueueIndexRange};
+use crate::{
+    messages::MessageId,
+    queue_with_intervals::queue_index_range::{QueueIndexRange, RemoveResult},
+};
 
 use super::iterator::QueueWithIntervalsIterator;
 use crate::page_id::SplittedByPageIdIterator;
@@ -34,33 +37,30 @@ impl QueueWithIntervals {
         self.intervals.extend(intervals)
     }
 
-    fn get_interval_index_to_remove(&self, message_id: MessageId) -> Option<usize> {
-        for i in 0..self.intervals.len() {
-            let interval = &self.intervals[i];
-            if interval.is_my_interval_to_remove(message_id) {
-                return Some(i);
-            }
+    pub fn remove(&mut self, id: MessageId) -> bool {
+        if self.intervals.len() == 0 {
+            println!("We are trying to remove {} but queue is empty #1", id);
+            return false;
         }
-        return None;
-    }
 
-    pub fn remove(&mut self, message_id: MessageId) -> bool {
-        let found_interval = self.get_interval_index_to_remove(message_id);
+        for index in 0..self.intervals.len() {
+            let item = self.intervals.get_mut(index).unwrap();
 
-        if let Some(index) = found_interval {
-            let new_item = self.intervals[index].remove(message_id);
+            if item.is_my_interval_to_remove(id) {
+                let remove_result = item.remove(id);
 
-            if let Some(new_item) = new_item {
-                self.intervals.insert(index + 1, new_item);
-            }
-
-            if self.len() > 1 {
-                if self.intervals[index].is_empty() {
-                    self.intervals.remove(index);
+                match remove_result {
+                    RemoveResult::NoUpdate => {}
+                    RemoveResult::InsertNew(new_item) => {
+                        self.intervals.insert(index + 1, new_item);
+                    }
+                    RemoveResult::RemoveItem => {
+                        self.intervals.remove(index);
+                    }
                 }
-            }
 
-            return true;
+                return true;
+            }
         }
 
         return false;

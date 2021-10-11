@@ -46,6 +46,20 @@ impl QueueIndexRange {
         return false;
     }
 
+    pub fn is_in_my_interval(&self, id: MessageId)->bool{
+        id >= self.from_id && id <= self.to_id
+    }
+
+
+
+    pub fn can_be_joined_to_interval_from_the_left(&self, id: MessageId)->bool{
+       self.from_id -1 <= id && id <= self.to_id
+    }
+
+    pub fn can_be_joined_to_interval_from_the_right(&self, id: MessageId)->bool{
+        self.from_id <= id && id <= self.to_id +1
+    }
+
     pub fn is_my_interval_to_remove(&self, id: MessageId) -> bool {
         if self.is_empty() {
             panic!("We are trying to find interval to remove but we bumped empty interval");
@@ -87,6 +101,7 @@ impl QueueIndexRange {
 
         return RemoveResult::InsertNew(new_item);
     }
+
 
     pub fn dequeue(&mut self) -> Option<MessageId> {
         if self.from_id > self.to_id {

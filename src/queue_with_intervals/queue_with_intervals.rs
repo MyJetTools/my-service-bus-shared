@@ -67,10 +67,19 @@ impl QueueWithIntervals {
     }
 
     pub fn enqueue(&mut self, message_id: MessageId) {
-        if self.intervals.len() == 0 {
-            let item = QueueIndexRange::new_with_single_value(message_id);
-            self.intervals.push(item);
-            return;
+        match self.intervals.get_mut(0) {
+            Some(el) => {
+                if el.is_empty() {
+                    el.from_id = message_id;
+                    el.to_id = message_id;
+                    return;
+                }
+            }
+            None => {
+                let item = QueueIndexRange::new_with_single_value(message_id);
+                self.intervals.push(item);
+                return;
+            }
         }
 
         let mut found_index = None;

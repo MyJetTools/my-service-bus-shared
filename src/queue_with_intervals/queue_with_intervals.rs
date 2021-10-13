@@ -161,6 +161,12 @@ impl QueueWithIntervals {
         }
     }
 
+    pub fn merge_with(&mut self, other_queue: &QueueWithIntervals) {
+        for range in &other_queue.intervals {
+            self.enqueue_range(range);
+        }
+    }
+
     pub fn enqueue_range(&mut self, range_to_insert: &QueueIndexRange) {
         let first_el_result = self.intervals.get_mut(0);
 

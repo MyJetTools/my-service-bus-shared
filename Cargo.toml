@@ -10,3 +10,4 @@ zip = "*"
 prost = "0.8.0"
 prost-types = "0.8.0"
 chrono = "0.4.19"
+tokio = { version = "*", features = ["full"] }

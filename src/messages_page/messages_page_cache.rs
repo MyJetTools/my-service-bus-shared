@@ -37,7 +37,7 @@ impl MessagesPagesCache {
         }
     }
 
-    pub async fn get(&self, page_id: PageId) -> Option<Arc<MessagesPage>> {
+    pub async fn get_page(&self, page_id: PageId) -> Option<Arc<MessagesPage>> {
         let read_access = self.pages.read().await;
         let result = read_access.get(&page_id)?;
         Some(result.clone())

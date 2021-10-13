@@ -9,7 +9,7 @@ pub mod queue;
 pub mod queue_with_intervals;
 pub mod settings;
 
-pub use messages::MessageId;
+pub use messages::{MessageId, MySbMessage, MySbMessageContent};
 
 pub mod debug;
 pub mod messages_bucket;

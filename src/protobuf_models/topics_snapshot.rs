@@ -31,6 +31,9 @@ pub struct QueueSnapshotProtobufModel {
 
     #[prost(message, repeated, tag = "2")]
     pub ranges: Vec<QueueRangeProtobufModel>,
+
+    #[prost(int32, tag = "3")]
+    pub queue_type: i32,
 }
 
 #[derive(Clone, PartialEq, ::prost::Message)]

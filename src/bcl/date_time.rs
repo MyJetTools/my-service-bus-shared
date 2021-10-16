@@ -1,4 +1,4 @@
-use crate::date_time::DateTimeAsMicroseconds;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct BclDateTime {

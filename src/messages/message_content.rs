@@ -1,4 +1,5 @@
-use crate::{date_time::DateTimeAsMicroseconds, MessageId};
+use crate::MessageId;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 #[derive(Debug)]
 pub struct MySbMessageContent {

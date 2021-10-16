@@ -1,5 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 #[derive(Clone, Debug)]
 pub struct LockItem {
     pub id: i64,
@@ -47,7 +49,7 @@ impl Locks {
                 LockItem {
                     id,
                     data: VecDeque::new(),
-                    date: crate::date_time::DateTimeAsMicroseconds::now().unix_microseconds,
+                    date: DateTimeAsMicroseconds::now().unix_microseconds,
                 },
             );
         }

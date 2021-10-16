@@ -1,4 +1,4 @@
-use crate::date_time::DateTimeAsMicroseconds;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub trait BclToUnixMicroseconds {
     fn to_unix_microseconds(&self) -> Result<i64, String>;

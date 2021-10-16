@@ -207,6 +207,7 @@ dependencies = [
  "chrono",
  "prost",
  "prost-types",
+ "rust-extensions",
  "tokio",
  "zip",
 ]
@@ -350,6 +351,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8383f39639269cde97d255a32bdb68c047337295414940c68bdd30c2e13203ff"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "rust-extensions"
+version = "0.1.0"
+source = "git+https://github.com/MyJetTools/rust-extensions.git?branch=main#d722f44ee4da2bac9764e8dad4d28866020cf17e"
+dependencies = [
+ "chrono",
+ "tokio",
 ]
 
 [[package]]

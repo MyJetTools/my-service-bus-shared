@@ -12,7 +12,7 @@ use super::MessagesPageData;
 pub enum MessageSize {
     MessageIsReady(usize),
     NotLoaded,
-    CanNotBeLoaded,
+    Missing,
 }
 
 pub struct MessagesPage {
@@ -45,13 +45,12 @@ impl MessagesPage {
         let msg = read_access.messages.get(message_id);
 
         if msg.is_none() {
-            //TODO - Double check
-            return MessageSize::CanNotBeLoaded;
+            return MessageSize::Missing;
         }
 
         match msg.unwrap() {
             MySbMessage::Loaded(msg) => MessageSize::MessageIsReady(msg.content.len()),
-            MySbMessage::CanNotBeLoaded { id: _, err: _ } => MessageSize::CanNotBeLoaded,
+            MySbMessage::Missing { id: _ } => MessageSize::Missing,
             MySbMessage::NotLoaded { id: _ } => MessageSize::NotLoaded,
         }
     }

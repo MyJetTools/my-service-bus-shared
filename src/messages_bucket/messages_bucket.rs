@@ -44,7 +44,7 @@ impl MessagesBucket {
         return self.messages.len() + self.intermediary_confirmed;
     }
 
-    pub fn intermediary_confirmed(&mut self, messages_intermediary_confirmed: QueueWithIntervals) {
+    pub fn intermediary_confirmed(&mut self, messages_intermediary_confirmed: &QueueWithIntervals) {
         self.intermediary_confirmed += messages_intermediary_confirmed.len() as usize;
 
         for message_id in messages_intermediary_confirmed {

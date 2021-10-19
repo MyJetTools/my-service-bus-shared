@@ -9,6 +9,7 @@ pub struct MessagesBucket {
     pub messages: HashMap<MessageId, MessageToSendModel>,
     pub messages_size: usize,
     pub ids: QueueWithIntervals,
+    pub intermediary_confirmed: QueueWithIntervals,
 }
 
 impl MessagesBucket {
@@ -18,6 +19,7 @@ impl MessagesBucket {
             messages: HashMap::new(),
             messages_size: 0,
             ids: QueueWithIntervals::new(),
+            intermediary_confirmed: QueueWithIntervals::new(),
         }
     }
 
@@ -36,6 +38,15 @@ impl MessagesBucket {
 
     pub fn messages_count(&self) -> usize {
         return self.messages.len();
+    }
+
+    pub fn messages_count_with_intermediary_confirmed(&self) -> usize {
+        return self.messages.len() + (self.intermediary_confirmed.len() as usize);
+    }
+
+    pub fn intermediary_confirmed(&mut self, message_id: MessageId) {
+        self.intermediary_confirmed.enqueue(message_id);
+        self.remove(message_id);
     }
 
     pub fn remove(&mut self, message_id: MessageId) -> Option<MessageToSendModel> {

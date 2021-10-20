@@ -197,6 +197,7 @@ impl QueueIndexRange {
         return Some(QueueIndexRangeCompare::Inside);
     }
 
+
     #[cfg(test)]
     pub fn to_string(&self) -> String {
         if self.is_empty() {

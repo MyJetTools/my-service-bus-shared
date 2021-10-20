@@ -3,7 +3,7 @@ use crate::{
     queue_with_intervals::queue_index_range::{QueueIndexRange, RemoveResult},
 };
 
-use super::iterator::QueueWithIntervalsIterator;
+use super::{iterator::QueueWithIntervalsIterator, queue_index_range::QueueIndexRangeCompare};
 use crate::page_id::SplittedByPageIdIterator;
 
 #[derive(Debug, Clone)]
@@ -326,6 +326,18 @@ impl QueueWithIntervals {
 
     pub fn split_by_page_id(&self) -> SplittedByPageIdIterator {
         SplittedByPageIdIterator::new(self)
+    }
+
+    pub fn has_message(&self, id: MessageId) -> bool {
+        for item in &self.intervals {
+            if let Some(range) = item.compare_with(id) {
+                if let QueueIndexRangeCompare::Inside = range {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
 

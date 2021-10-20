@@ -86,3 +86,65 @@ impl MessagesPageData {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use rust_extensions::date_time::DateTimeAsMicroseconds;
+
+    use super::*;
+
+    #[test]
+    pub fn test_gc_messages() {
+        let mut page_data = MessagesPageData::new();
+
+        let mut msgs_to_restore = Vec::new();
+
+        msgs_to_restore.push(MySbMessage::NotLoaded { id: 1 });
+        msgs_to_restore.push(MySbMessage::NotLoaded { id: 2 });
+        msgs_to_restore.push(MySbMessage::NotLoaded { id: 3 });
+        msgs_to_restore.push(MySbMessage::NotLoaded { id: 4 });
+
+        msgs_to_restore.push(MySbMessage::Loaded(MySbMessageContent {
+            id: 5,
+            time: DateTimeAsMicroseconds::now(),
+            content: vec![5u8, 5u8, 5u8],
+        }));
+
+        msgs_to_restore.push(MySbMessage::Loaded(MySbMessageContent {
+            id: 6,
+            time: DateTimeAsMicroseconds::now(),
+            content: vec![6u8, 6u8, 6u8],
+        }));
+
+        msgs_to_restore.push(MySbMessage::Loaded(MySbMessageContent {
+            id: 7,
+            time: DateTimeAsMicroseconds::now(),
+            content: vec![7u8, 7u8, 7u8],
+        }));
+
+        msgs_to_restore.push(MySbMessage::Loaded(MySbMessageContent {
+            id: 8,
+            time: DateTimeAsMicroseconds::now(),
+            content: vec![7u8, 7u8, 7u8],
+        }));
+
+        page_data.restore(msgs_to_restore);
+
+        assert_eq!(4, page_data.full_loaded_messages.len());
+
+        assert_eq!(true, page_data.full_loaded_messages.has_message(5));
+        assert_eq!(true, page_data.full_loaded_messages.has_message(6));
+        assert_eq!(true, page_data.full_loaded_messages.has_message(7));
+        assert_eq!(true, page_data.full_loaded_messages.has_message(8));
+
+        page_data.gc_messages(7);
+
+        assert_eq!(2, page_data.full_loaded_messages.len());
+
+        assert_eq!(false, page_data.full_loaded_messages.has_message(5));
+        assert_eq!(false, page_data.full_loaded_messages.has_message(6));
+        assert_eq!(true, page_data.full_loaded_messages.has_message(7));
+        assert_eq!(true, page_data.full_loaded_messages.has_message(8));
+    }
+}

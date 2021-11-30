@@ -38,18 +38,16 @@ impl MessagesPage {
         }
     }
 
-    pub fn new_messages(&mut self, msgs: Vec<MySbMessageContent>) {
-        for msg in msgs {
-            self.size += msg.content.len();
+    pub fn new_message(&mut self, msg: MySbMessageContent) {
+        self.size += msg.content.len();
 
-            self.to_be_persisted.enqueue(msg.id);
-            self.full_loaded_messages.enqueue(msg.id);
+        self.to_be_persisted.enqueue(msg.id);
+        self.full_loaded_messages.enqueue(msg.id);
 
-            let old = self.messages.insert(msg.id, MySbMessage::Loaded(msg));
+        let old = self.messages.insert(msg.id, MySbMessage::Loaded(msg));
 
-            if let Some(old) = old {
-                self.size -= old.content_size();
-            }
+        if let Some(old) = old {
+            self.size -= old.content_size();
         }
     }
 

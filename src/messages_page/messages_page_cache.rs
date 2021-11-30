@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Values, HashMap};
 
-use crate::{messages::MySbMessageContent, page_id::PageId};
+use crate::page_id::PageId;
 
 use super::MessagesPage;
 
@@ -23,16 +23,17 @@ impl MessagesPagesCache {
         }
     }
 
-    pub fn new_messages(&mut self, page_id: PageId, msgs: Vec<MySbMessageContent>) {
-        if !self.pages.contains_key(&page_id) {
-            self.pages.insert(page_id, MessagesPage::new(page_id));
-        }
-
-        self.pages.get_mut(&page_id).unwrap().new_messages(msgs)
-    }
-
     pub fn get_page(&self, page_id: PageId) -> Option<&MessagesPage> {
         self.pages.get(&page_id)
+    }
+
+    pub fn get_or_create_page_mut(&mut self, page_id: PageId) -> &mut MessagesPage {
+        if !self.pages.contains_key(&page_id) {
+            let page = MessagesPage::new(page_id);
+            self.pages.insert(page_id, page);
+        }
+
+        return self.pages.get_mut(&page_id).unwrap();
     }
 
     pub fn has_page(&self, page_id: &PageId) -> bool {

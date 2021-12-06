@@ -16,4 +16,12 @@ impl MySbMessageContent {
             time,
         }
     }
+
+    pub fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+            content: self.content.clone(),
+            time: self.time,
+        }
+    }
 }

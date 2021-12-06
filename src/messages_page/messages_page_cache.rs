@@ -78,7 +78,7 @@ impl MessagesPagesCache {
         result
     }
 
-    pub fn get_messages_to_persist(&self) -> Option<(PageId, Vec<&MySbMessageContent>)> {
+    pub fn get_messages_to_persist(&self) -> Option<(PageId, Vec<MySbMessageContent>)> {
         for (page_id, page_data) in &self.pages {
             let messages_to_persist = page_data.get_messages_to_persist();
 
@@ -88,5 +88,11 @@ impl MessagesPagesCache {
         }
 
         None
+    }
+
+    pub fn persisted(&mut self, page_id: PageId, messages: &[MySbMessageContent]) {
+        if let Some(page) = self.pages.get_mut(&page_id) {
+            page.persisted(messages);
+        }
     }
 }

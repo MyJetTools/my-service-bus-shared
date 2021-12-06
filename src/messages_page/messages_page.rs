@@ -111,7 +111,7 @@ impl MessagesPage {
         }
     }
 
-    pub fn get_messages_to_persist(&self) -> Option<Vec<&MySbMessageContent>> {
+    pub fn get_messages_to_persist(&self) -> Option<Vec<MySbMessageContent>> {
         let mut result = None;
 
         for msg in &self.to_be_persisted {
@@ -121,12 +121,18 @@ impl MessagesPage {
                         result = Some(Vec::new());
                     }
 
-                    result.as_mut().unwrap().push(content);
+                    result.as_mut().unwrap().push(content.clone());
                 }
             }
         }
 
         result
+    }
+
+    pub fn persisted(&mut self, messages: &[MySbMessageContent]) {
+        for msg in messages {
+            self.to_be_persisted.remove(msg.id);
+        }
     }
 }
 

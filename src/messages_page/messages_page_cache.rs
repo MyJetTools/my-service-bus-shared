@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Values, HashMap};
 
-use crate::page_id::PageId;
+use crate::{page_id::PageId, MySbMessageContent};
 
 use super::MessagesPage;
 
@@ -76,5 +76,17 @@ impl MessagesPagesCache {
         }
 
         result
+    }
+
+    pub fn get_messages_to_persist(&self) -> Option<(PageId, Vec<&MySbMessageContent>)> {
+        for (page_id, page_data) in &self.pages {
+            let messages_to_persist = page_data.get_messages_to_persist();
+
+            if let Some(messages) = messages_to_persist {
+                return Some((*page_id, messages));
+            }
+        }
+
+        None
     }
 }

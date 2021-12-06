@@ -110,6 +110,24 @@ impl MessagesPage {
             self.gc(messages_to_gc);
         }
     }
+
+    pub fn get_messages_to_persist(&self) -> Option<Vec<&MySbMessageContent>> {
+        let mut result = None;
+
+        for msg in &self.to_be_persisted {
+            if let Some(message) = self.messages.get(&msg) {
+                if let MySbMessage::Loaded(content) = message {
+                    if result.is_none() {
+                        result = Some(Vec::new());
+                    }
+
+                    result.as_mut().unwrap().push(content);
+                }
+            }
+        }
+
+        result
+    }
 }
 
 #[cfg(test)]

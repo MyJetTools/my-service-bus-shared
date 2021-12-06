@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Values, HashMap};
 
-use crate::{page_id::PageId, protobuf_models::MessageProtobufModel, MySbMessageContent};
+use crate::{page_id::PageId, protobuf_models::MessageProtobufModel};
 
 use super::MessagesPage;
 
@@ -90,7 +90,7 @@ impl MessagesPagesCache {
         None
     }
 
-    pub fn persisted(&mut self, page_id: PageId, messages: &[MySbMessageContent]) {
+    pub fn persisted(&mut self, page_id: PageId, messages: &[MessageProtobufModel]) {
         if let Some(page) = self.pages.get_mut(&page_id) {
             page.persisted(messages);
         }

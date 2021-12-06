@@ -135,9 +135,9 @@ impl MessagesPage {
         result
     }
 
-    pub fn persisted(&mut self, messages: &[MySbMessageContent]) {
+    pub fn persisted(&mut self, messages: &[MessageProtobufModel]) {
         for msg in messages {
-            self.to_be_persisted.remove(msg.id);
+            self.to_be_persisted.remove(msg.message_id);
         }
     }
 }

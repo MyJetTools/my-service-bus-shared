@@ -5,6 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     messages::{MySbMessage, MySbMessageContent},
     page_id::PageId,
+    protobuf_models::MessageProtobufModel,
     queue_with_intervals::QueueWithIntervals,
     MessageId,
 };
@@ -111,7 +112,7 @@ impl MessagesPage {
         }
     }
 
-    pub fn get_messages_to_persist(&self) -> Option<Vec<MySbMessageContent>> {
+    pub fn get_messages_to_persist(&self) -> Option<Vec<MessageProtobufModel>> {
         let mut result = None;
 
         for msg in &self.to_be_persisted {
@@ -121,7 +122,12 @@ impl MessagesPage {
                         result = Some(Vec::new());
                     }
 
-                    result.as_mut().unwrap().push(content.clone());
+                    result.as_mut().unwrap().push(MessageProtobufModel {
+                        created: Some(content.time.into()),
+                        message_id: content.id,
+                        data: content.content.clone(),
+                        metadata: Vec::new(),
+                    });
                 }
             }
         }

@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Values, HashMap};
 
-use crate::{page_id::PageId, protobuf_models::MessagesProtobufModel, MySbMessageContent};
+use crate::{page_id::PageId, protobuf_models::MessageProtobufModel, MySbMessageContent};
 
 use super::MessagesPage;
 
@@ -78,12 +78,12 @@ impl MessagesPagesCache {
         result
     }
 
-    pub fn get_messages_to_persist(&self) -> Option<(PageId, MessagesProtobufModel)> {
+    pub fn get_messages_to_persist(&self) -> Option<(PageId, Vec<MessageProtobufModel>)> {
         for (page_id, page_data) in &self.pages {
             let messages_to_persist = page_data.get_messages_to_persist();
 
             if let Some(messages) = messages_to_persist {
-                return Some((*page_id, MessagesProtobufModel { messages }));
+                return Some((*page_id, messages));
             }
         }
 

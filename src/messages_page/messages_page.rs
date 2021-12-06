@@ -135,9 +135,9 @@ impl MessagesPage {
         result
     }
 
-    pub fn persisted(&mut self, messages: &[MessageProtobufModel]) {
-        for msg in messages {
-            self.to_be_persisted.remove(msg.message_id);
+    pub fn persisted(&mut self, messages: QueueWithIntervals) {
+        for msg_id in &messages {
+            self.to_be_persisted.remove(msg_id);
         }
     }
 }

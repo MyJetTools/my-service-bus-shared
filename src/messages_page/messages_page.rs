@@ -27,7 +27,7 @@ pub struct MessagesPage {
 }
 
 impl MessagesPage {
-    pub fn new(page_id: PageId) -> MessagesPage {
+    pub fn new_empty(page_id: PageId) -> MessagesPage {
         MessagesPage {
             messages: BTreeMap::new(),
             size: 0,
@@ -39,12 +39,44 @@ impl MessagesPage {
         }
     }
 
+    pub fn new(
+        page_id: PageId,
+        from_id: MessageId,
+        to_id: MessageId,
+        mut messages: BTreeMap<MessageId, MySbMessageContent>,
+    ) -> MessagesPage {
+        let mut result = MessagesPage {
+            messages: BTreeMap::new(),
+            size: 0,
+            to_be_persisted: QueueWithIntervals::new(),
+            is_being_persisted: false,
+            full_loaded_messages: QueueWithIntervals::new(),
+            page_id,
+            last_accessed: DateTimeAsMicroseconds::now(),
+        };
+
+        for id in from_id..to_id + 1 {
+            let msg = messages.remove(&id);
+
+            match msg {
+                Some(content) => {
+                    result.messages.insert(id, MySbMessage::Loaded(content));
+                }
+                None => {
+                    result.messages.insert(id, MySbMessage::Missing { id });
+                }
+            }
+        }
+
+        result
+    }
+
     pub fn new_with_missing_messages(
         page_id: PageId,
         from_id: MessageId,
         to_id: MessageId,
     ) -> MessagesPage {
-        let mut result = Self::new(page_id);
+        let mut result = Self::new_empty(page_id);
 
         for id in from_id..to_id + 1 {
             result.messages.insert(id, MySbMessage::Missing { id });
@@ -165,7 +197,7 @@ mod tests {
 
     #[test]
     pub fn test_gc_messages() {
-        let mut page_data = MessagesPage::new(0);
+        let mut page_data = MessagesPage::new_empty(0);
 
         let mut msgs_to_restore = Vec::new();
 

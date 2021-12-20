@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -19,7 +19,7 @@ pub enum MessageSize {
 pub struct MessagesPage {
     pub to_be_persisted: QueueWithIntervals,
     full_loaded_messages: QueueWithIntervals,
-    pub messages: HashMap<MessageId, MySbMessage>,
+    pub messages: BTreeMap<MessageId, MySbMessage>,
     pub size: usize,
     pub is_being_persisted: bool,
     pub page_id: PageId,
@@ -29,7 +29,7 @@ pub struct MessagesPage {
 impl MessagesPage {
     pub fn new(page_id: PageId) -> MessagesPage {
         MessagesPage {
-            messages: HashMap::new(),
+            messages: BTreeMap::new(),
             size: 0,
             to_be_persisted: QueueWithIntervals::new(),
             is_being_persisted: false,
@@ -37,6 +37,20 @@ impl MessagesPage {
             page_id,
             last_accessed: DateTimeAsMicroseconds::now(),
         }
+    }
+
+    pub fn new_with_missing_messages(
+        page_id: PageId,
+        from_id: MessageId,
+        to_id: MessageId,
+    ) -> MessagesPage {
+        let mut result = Self::new(page_id);
+
+        for id in from_id..to_id + 1 {
+            result.messages.insert(id, MySbMessage::Missing { id });
+        }
+
+        result
     }
 
     pub fn new_message(&mut self, msg: MySbMessageContent) {
@@ -201,5 +215,22 @@ mod tests {
         assert_eq!(false, page_data.full_loaded_messages.has_message(6));
         assert_eq!(true, page_data.full_loaded_messages.has_message(7));
         assert_eq!(true, page_data.full_loaded_messages.has_message(8));
+    }
+
+    #[test]
+    fn test_new_with_all_missing() {
+        let page_data = MessagesPage::new_with_missing_messages(0, 5, 10);
+
+        assert_eq!(6, page_data.messages.len());
+
+        for msg_id in 5..11 {
+            let msg = page_data.messages.get(&msg_id).unwrap();
+
+            if let MySbMessage::Missing { id } = msg {
+                assert_eq!(*id, msg_id);
+            } else {
+                panic!("We should not be here");
+            }
+        }
     }
 }

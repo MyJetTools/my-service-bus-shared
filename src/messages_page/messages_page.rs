@@ -114,7 +114,7 @@ impl MessagesPage {
         }
     }
 
-    pub fn restore(&mut self, msgs: Vec<MySbMessage>) {
+    fn update_messages(&mut self, msgs: Vec<MySbMessage>) -> Option<MessageId> {
         let mut min_message_id = None;
         for msg in msgs {
             self.size += msg.content_size();
@@ -140,9 +140,19 @@ impl MessagesPage {
             }
         }
 
+        min_message_id
+    }
+
+    pub fn restore(page_id: PageId, msgs: Vec<MySbMessage>) -> Self {
+        let mut result = Self::create_empty(page_id);
+
+        let min_message_id = result.update_messages(msgs);
+
         if let Some(min_message_id) = min_message_id {
-            self.fill_with_not_loaded(min_message_id);
+            result.fill_with_not_loaded(min_message_id);
         }
+
+        result
     }
 
     pub fn get_message_size(&self, message_id: &MessageId) -> MessageSize {
@@ -164,7 +174,7 @@ impl MessagesPage {
             self.full_loaded_messages.remove(msg_to_gc.get_id());
         }
 
-        self.restore(messages_to_gc);
+        self.update_messages(messages_to_gc);
     }
 
     pub fn gc_messages(&mut self, up_to_message_id: MessageId) {
@@ -228,8 +238,6 @@ mod tests {
 
     #[test]
     pub fn test_gc_messages() {
-        let mut page_data = MessagesPage::create_empty(0);
-
         let mut msgs_to_restore = Vec::new();
 
         msgs_to_restore.push(MySbMessage::NotLoaded { id: 1 });
@@ -261,7 +269,7 @@ mod tests {
             content: vec![7u8, 7u8, 7u8],
         }));
 
-        page_data.restore(msgs_to_restore);
+        let mut page_data = MessagesPage::restore(0, msgs_to_restore);
 
         assert_eq!(4, page_data.full_loaded_messages.len());
 

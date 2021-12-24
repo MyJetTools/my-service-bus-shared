@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     messages::{MySbMessage, MySbMessageContent},
-    page_id::PageId,
+    page_id::{PageId, MESSAGES_IN_PAGE},
     protobuf_models::MessageProtobufModel,
     queue_with_intervals::QueueWithIntervals,
     MessageId,
@@ -68,6 +68,8 @@ impl MessagesPage {
             }
         }
 
+        result.fill_with_not_loaded(page_id, from_id);
+
         result
     }
 
@@ -82,7 +84,21 @@ impl MessagesPage {
             result.messages.insert(id, MySbMessage::Missing { id });
         }
 
+        result.fill_with_not_loaded(page_id, from_id);
+
         result
+    }
+
+    fn fill_with_not_loaded(&mut self, page_id: PageId, from_id: MessageId) {
+        let first_page_id = page_id * MESSAGES_IN_PAGE;
+
+        for id in first_page_id..from_id {
+            if !self.messages.contains_key(&id) {
+                self.messages.insert(id, MySbMessage::NotLoaded { id });
+            } else {
+                break;
+            }
+        }
     }
 
     pub fn new_message(&mut self, msg: MySbMessageContent) {
@@ -250,15 +266,25 @@ mod tests {
     }
 
     #[test]
-    fn test_new_with_all_missing() {
+    fn test_new_with_all_missing_and_loaded() {
         let page_data = MessagesPage::new_with_missing_messages(0, 5, 10);
 
-        assert_eq!(6, page_data.messages.len());
+        assert_eq!(11, page_data.messages.len());
 
         for msg_id in 5..11 {
             let msg = page_data.messages.get(&msg_id).unwrap();
 
             if let MySbMessage::Missing { id } = msg {
+                assert_eq!(*id, msg_id);
+            } else {
+                panic!("We should not be here");
+            }
+        }
+
+        for msg_id in 0..5 {
+            let msg = page_data.messages.get(&msg_id).unwrap();
+
+            if let MySbMessage::NotLoaded { id } = msg {
                 assert_eq!(*id, msg_id);
             } else {
                 panic!("We should not be here");

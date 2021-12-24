@@ -32,7 +32,7 @@ impl MessagesPagesCache {
 
     pub fn get_or_create_page_mut(&mut self, page_id: PageId) -> &mut MessagesPage {
         if !self.pages.contains_key(&page_id) {
-            let page = MessagesPage::new_empty(page_id);
+            let page = MessagesPage::create_empty(page_id);
             self.pages.insert(page_id, page);
         }
 

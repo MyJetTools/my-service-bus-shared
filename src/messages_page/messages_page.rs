@@ -27,7 +27,7 @@ pub struct MessagesPage {
 }
 
 impl MessagesPage {
-    pub fn new_empty(page_id: PageId) -> MessagesPage {
+    pub fn create_empty(page_id: PageId) -> MessagesPage {
         MessagesPage {
             messages: BTreeMap::new(),
             size: 0,
@@ -68,7 +68,7 @@ impl MessagesPage {
             }
         }
 
-        result.fill_with_not_loaded(page_id, from_id);
+        result.fill_with_not_loaded(from_id);
 
         result
     }
@@ -78,19 +78,19 @@ impl MessagesPage {
         from_id: MessageId,
         to_id: MessageId,
     ) -> MessagesPage {
-        let mut result = Self::new_empty(page_id);
+        let mut result = Self::create_empty(page_id);
 
         for id in from_id..to_id + 1 {
             result.messages.insert(id, MySbMessage::Missing { id });
         }
 
-        result.fill_with_not_loaded(page_id, from_id);
+        result.fill_with_not_loaded(from_id);
 
         result
     }
 
-    fn fill_with_not_loaded(&mut self, page_id: PageId, from_id: MessageId) {
-        let first_page_id = page_id * MESSAGES_IN_PAGE;
+    fn fill_with_not_loaded(&mut self, from_id: MessageId) {
+        let first_page_id = self.page_id * MESSAGES_IN_PAGE;
 
         for id in first_page_id..from_id {
             if !self.messages.contains_key(&id) {
@@ -115,6 +115,7 @@ impl MessagesPage {
     }
 
     pub fn restore(&mut self, msgs: Vec<MySbMessage>) {
+        let mut min_message_id = None;
         for msg in msgs {
             self.size += msg.content_size();
 
@@ -122,11 +123,25 @@ impl MessagesPage {
                 self.full_loaded_messages.enqueue(full_message.id);
             }
 
-            let old = self.messages.insert(msg.get_id(), msg);
+            let message_id = msg.get_id();
+
+            let old = self.messages.insert(message_id, msg);
 
             if let Some(old) = old {
                 self.size -= old.content_size();
             }
+
+            if let Some(current_min_message_id) = min_message_id {
+                if current_min_message_id > message_id {
+                    min_message_id = Some(message_id);
+                }
+            } else {
+                min_message_id = Some(message_id);
+            }
+        }
+
+        if let Some(min_message_id) = min_message_id {
+            self.fill_with_not_loaded(min_message_id);
         }
     }
 
@@ -213,7 +228,7 @@ mod tests {
 
     #[test]
     pub fn test_gc_messages() {
-        let mut page_data = MessagesPage::new_empty(0);
+        let mut page_data = MessagesPage::create_empty(0);
 
         let mut msgs_to_restore = Vec::new();
 

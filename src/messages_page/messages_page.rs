@@ -39,6 +39,32 @@ impl MessagesPage {
         }
     }
 
+    pub fn restore(
+        page_id: PageId,
+        from_id: MessageId,
+        to_id: MessageId,
+        mut messages: BTreeMap<MessageId, MySbMessageContent>,
+    ) -> Self {
+        let mut result = MessagesPage::create_empty(page_id);
+
+        result.fill_with_not_loaded(from_id);
+
+        for id in from_id..to_id + 1 {
+            let msg = messages.remove(&id);
+
+            match msg {
+                Some(content) => {
+                    result.update_message(MySbMessage::Loaded(content));
+                }
+                None => {
+                    result.update_message(MySbMessage::Missing { id });
+                }
+            }
+        }
+
+        result
+    }
+
     pub fn new_with_missing_messages(
         page_id: PageId,
         from_id: MessageId,
@@ -46,11 +72,11 @@ impl MessagesPage {
     ) -> MessagesPage {
         let mut result = Self::create_empty(page_id);
 
+        result.fill_with_not_loaded(from_id);
+
         for id in from_id..to_id + 1 {
             result.messages.insert(id, MySbMessage::Missing { id });
         }
-
-        result.fill_with_not_loaded(from_id);
 
         result
     }
@@ -59,11 +85,7 @@ impl MessagesPage {
         let first_page_id = self.page_id * MESSAGES_IN_PAGE;
 
         for id in first_page_id..from_id {
-            if !self.messages.contains_key(&id) {
-                self.messages.insert(id, MySbMessage::NotLoaded { id });
-            } else {
-                break;
-            }
+            self.messages.insert(id, MySbMessage::NotLoaded { id });
         }
     }
 
@@ -117,32 +139,6 @@ impl MessagesPage {
         }
 
         min_message_id
-    }
-
-    pub fn restore(
-        page_id: PageId,
-        from_id: MessageId,
-        to_id: MessageId,
-        mut messages: BTreeMap<MessageId, MySbMessageContent>,
-    ) -> Self {
-        let mut result = MessagesPage::create_empty(page_id);
-
-        for id in from_id..to_id + 1 {
-            let msg = messages.remove(&id);
-
-            match msg {
-                Some(content) => {
-                    result.update_message(MySbMessage::Loaded(content));
-                }
-                None => {
-                    result.update_message(MySbMessage::Missing { id });
-                }
-            }
-        }
-
-        result.fill_with_not_loaded(from_id);
-
-        result
     }
 
     pub fn get_message_size(&self, message_id: &MessageId) -> MessageSize {

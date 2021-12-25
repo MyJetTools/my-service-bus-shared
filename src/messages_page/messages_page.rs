@@ -123,7 +123,7 @@ impl MessagesPage {
         page_id: PageId,
         from_id: MessageId,
         to_id: MessageId,
-        mut messages: BTreeMap<MessageId, MySbMessage>,
+        mut messages: BTreeMap<MessageId, MySbMessageContent>,
     ) -> Self {
         let mut result = MessagesPage::create_empty(page_id);
 
@@ -131,8 +131,8 @@ impl MessagesPage {
             let msg = messages.remove(&id);
 
             match msg {
-                Some(msg) => {
-                    result.update_message(msg);
+                Some(content) => {
+                    result.update_message(MySbMessage::Loaded(content));
                 }
                 None => {
                     result.update_message(MySbMessage::Missing { id });
@@ -232,38 +232,38 @@ mod tests {
 
         msgs_to_restore.insert(
             5,
-            MySbMessage::Loaded(MySbMessageContent {
+            MySbMessageContent {
                 id: 5,
                 time: DateTimeAsMicroseconds::now(),
                 content: vec![5u8, 5u8, 5u8],
-            }),
+            },
         );
 
         msgs_to_restore.insert(
             6,
-            MySbMessage::Loaded(MySbMessageContent {
+            MySbMessageContent {
                 id: 6,
                 time: DateTimeAsMicroseconds::now(),
                 content: vec![6u8, 6u8, 6u8],
-            }),
+            },
         );
 
         msgs_to_restore.insert(
             7,
-            MySbMessage::Loaded(MySbMessageContent {
+            MySbMessageContent {
                 id: 7,
                 time: DateTimeAsMicroseconds::now(),
                 content: vec![7u8, 7u8, 7u8],
-            }),
+            },
         );
 
         msgs_to_restore.insert(
             8,
-            MySbMessage::Loaded(MySbMessageContent {
+            MySbMessageContent {
                 id: 8,
                 time: DateTimeAsMicroseconds::now(),
                 content: vec![7u8, 7u8, 7u8],
-            }),
+            },
         );
 
         let mut page_data = MessagesPage::restore(0, 5, 8, msgs_to_restore);

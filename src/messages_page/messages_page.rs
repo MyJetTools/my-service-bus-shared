@@ -39,40 +39,6 @@ impl MessagesPage {
         }
     }
 
-    pub fn new(
-        page_id: PageId,
-        from_id: MessageId,
-        to_id: MessageId,
-        mut messages: BTreeMap<MessageId, MySbMessageContent>,
-    ) -> MessagesPage {
-        let mut result = MessagesPage {
-            messages: BTreeMap::new(),
-            size: 0,
-            to_be_persisted: QueueWithIntervals::new(),
-            is_being_persisted: false,
-            full_loaded_messages: QueueWithIntervals::new(),
-            page_id,
-            last_accessed: DateTimeAsMicroseconds::now(),
-        };
-
-        for id in from_id..to_id + 1 {
-            let msg = messages.remove(&id);
-
-            match msg {
-                Some(content) => {
-                    result.messages.insert(id, MySbMessage::Loaded(content));
-                }
-                None => {
-                    result.messages.insert(id, MySbMessage::Missing { id });
-                }
-            }
-        }
-
-        result.fill_with_not_loaded(from_id);
-
-        result
-    }
-
     pub fn new_with_missing_messages(
         page_id: PageId,
         from_id: MessageId,
@@ -114,22 +80,32 @@ impl MessagesPage {
         }
     }
 
+    fn update_message(&mut self, msg: MySbMessage) {
+        self.size += msg.content_size();
+
+        if let MySbMessage::Loaded(full_message) = &msg {
+            self.full_loaded_messages.enqueue(full_message.id);
+        }
+
+        let message_id = msg.get_id();
+
+        let old = self.messages.insert(message_id, msg);
+
+        if let Some(old) = old {
+            self.size -= old.content_size();
+
+            if let MySbMessage::Loaded(full_message) = &old {
+                self.full_loaded_messages.remove(full_message.id);
+            }
+        }
+    }
+
     fn update_messages(&mut self, msgs: Vec<MySbMessage>) -> Option<MessageId> {
         let mut min_message_id = None;
         for msg in msgs {
-            self.size += msg.content_size();
-
-            if let MySbMessage::Loaded(full_message) = &msg {
-                self.full_loaded_messages.enqueue(full_message.id);
-            }
-
             let message_id = msg.get_id();
 
-            let old = self.messages.insert(message_id, msg);
-
-            if let Some(old) = old {
-                self.size -= old.content_size();
-            }
+            self.update_message(msg);
 
             if let Some(current_min_message_id) = min_message_id {
                 if current_min_message_id > message_id {
@@ -143,14 +119,28 @@ impl MessagesPage {
         min_message_id
     }
 
-    pub fn restore(page_id: PageId, msgs: Vec<MySbMessage>) -> Self {
-        let mut result = Self::create_empty(page_id);
+    pub fn restore(
+        page_id: PageId,
+        from_id: MessageId,
+        to_id: MessageId,
+        mut messages: BTreeMap<MessageId, MySbMessage>,
+    ) -> Self {
+        let mut result = MessagesPage::create_empty(page_id);
 
-        let min_message_id = result.update_messages(msgs);
+        for id in from_id..to_id + 1 {
+            let msg = messages.remove(&id);
 
-        if let Some(min_message_id) = min_message_id {
-            result.fill_with_not_loaded(min_message_id);
+            match msg {
+                Some(msg) => {
+                    result.update_message(msg);
+                }
+                None => {
+                    result.update_message(MySbMessage::Missing { id });
+                }
+            }
         }
+
+        result.fill_with_not_loaded(from_id);
 
         result
     }
@@ -238,38 +228,45 @@ mod tests {
 
     #[test]
     pub fn test_gc_messages() {
-        let mut msgs_to_restore = Vec::new();
+        let mut msgs_to_restore = BTreeMap::new();
 
-        msgs_to_restore.push(MySbMessage::NotLoaded { id: 1 });
-        msgs_to_restore.push(MySbMessage::NotLoaded { id: 2 });
-        msgs_to_restore.push(MySbMessage::NotLoaded { id: 3 });
-        msgs_to_restore.push(MySbMessage::NotLoaded { id: 4 });
+        msgs_to_restore.insert(
+            5,
+            MySbMessage::Loaded(MySbMessageContent {
+                id: 5,
+                time: DateTimeAsMicroseconds::now(),
+                content: vec![5u8, 5u8, 5u8],
+            }),
+        );
 
-        msgs_to_restore.push(MySbMessage::Loaded(MySbMessageContent {
-            id: 5,
-            time: DateTimeAsMicroseconds::now(),
-            content: vec![5u8, 5u8, 5u8],
-        }));
+        msgs_to_restore.insert(
+            6,
+            MySbMessage::Loaded(MySbMessageContent {
+                id: 6,
+                time: DateTimeAsMicroseconds::now(),
+                content: vec![6u8, 6u8, 6u8],
+            }),
+        );
 
-        msgs_to_restore.push(MySbMessage::Loaded(MySbMessageContent {
-            id: 6,
-            time: DateTimeAsMicroseconds::now(),
-            content: vec![6u8, 6u8, 6u8],
-        }));
+        msgs_to_restore.insert(
+            7,
+            MySbMessage::Loaded(MySbMessageContent {
+                id: 7,
+                time: DateTimeAsMicroseconds::now(),
+                content: vec![7u8, 7u8, 7u8],
+            }),
+        );
 
-        msgs_to_restore.push(MySbMessage::Loaded(MySbMessageContent {
-            id: 7,
-            time: DateTimeAsMicroseconds::now(),
-            content: vec![7u8, 7u8, 7u8],
-        }));
+        msgs_to_restore.insert(
+            8,
+            MySbMessage::Loaded(MySbMessageContent {
+                id: 8,
+                time: DateTimeAsMicroseconds::now(),
+                content: vec![7u8, 7u8, 7u8],
+            }),
+        );
 
-        msgs_to_restore.push(MySbMessage::Loaded(MySbMessageContent {
-            id: 8,
-            time: DateTimeAsMicroseconds::now(),
-            content: vec![7u8, 7u8, 7u8],
-        }));
-
-        let mut page_data = MessagesPage::restore(0, msgs_to_restore);
+        let mut page_data = MessagesPage::restore(0, 5, 8, msgs_to_restore);
 
         assert_eq!(4, page_data.full_loaded_messages.len());
 

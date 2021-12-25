@@ -4,11 +4,13 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     messages::{MySbMessage, MySbMessageContent},
-    page_id::{PageId, MESSAGES_IN_PAGE},
+    page_id::PageId,
     protobuf_models::MessageProtobufModel,
     queue_with_intervals::QueueWithIntervals,
     MessageId,
 };
+
+use super::MessagesPageRestoreSnapshot;
 
 pub enum MessageSize {
     MessageIsReady(usize),
@@ -39,54 +41,14 @@ impl MessagesPage {
         }
     }
 
-    pub fn restore(
-        page_id: PageId,
-        from_id: MessageId,
-        to_id: MessageId,
-        mut messages: BTreeMap<MessageId, MySbMessageContent>,
-    ) -> Self {
-        let mut result = MessagesPage::create_empty(page_id);
+    pub fn restore(snapshot: MessagesPageRestoreSnapshot) -> Self {
+        let mut result = MessagesPage::create_empty(snapshot.page_id);
 
-        result.fill_with_not_loaded(from_id);
-
-        for id in from_id..to_id + 1 {
-            let msg = messages.remove(&id);
-
-            match msg {
-                Some(content) => {
-                    result.update_message(MySbMessage::Loaded(content));
-                }
-                None => {
-                    result.update_message(MySbMessage::Missing { id });
-                }
-            }
+        for msg in snapshot {
+            result.update_message(msg);
         }
 
         result
-    }
-
-    pub fn new_with_missing_messages(
-        page_id: PageId,
-        from_id: MessageId,
-        to_id: MessageId,
-    ) -> MessagesPage {
-        let mut result = Self::create_empty(page_id);
-
-        result.fill_with_not_loaded(from_id);
-
-        for id in from_id..to_id + 1 {
-            result.messages.insert(id, MySbMessage::Missing { id });
-        }
-
-        result
-    }
-
-    fn fill_with_not_loaded(&mut self, from_id: MessageId) {
-        let first_page_id = self.page_id * MESSAGES_IN_PAGE;
-
-        for id in first_page_id..from_id {
-            self.messages.insert(id, MySbMessage::NotLoaded { id });
-        }
     }
 
     pub fn new_message(&mut self, msg: MySbMessageContent) {
@@ -218,13 +180,15 @@ impl MessagesPage {
 #[cfg(test)]
 mod tests {
 
+    use std::collections::HashMap;
+
     use rust_extensions::date_time::DateTimeAsMicroseconds;
 
     use super::*;
 
     #[test]
     pub fn test_gc_messages() {
-        let mut msgs_to_restore = BTreeMap::new();
+        let mut msgs_to_restore = HashMap::new();
 
         msgs_to_restore.insert(
             5,
@@ -262,7 +226,10 @@ mod tests {
             },
         );
 
-        let mut page_data = MessagesPage::restore(0, 5, 8, msgs_to_restore);
+        let mut restore_snapshot = MessagesPageRestoreSnapshot::new(0, 5, 8);
+        restore_snapshot.messages = Some(msgs_to_restore);
+
+        let mut page_data = MessagesPage::restore(restore_snapshot);
 
         assert_eq!(4, page_data.full_loaded_messages.len());
 
@@ -283,7 +250,8 @@ mod tests {
 
     #[test]
     fn test_new_with_all_missing_and_loaded() {
-        let page_data = MessagesPage::new_with_missing_messages(0, 5, 10);
+        let restore_snapshot = MessagesPageRestoreSnapshot::new(0, 5, 10);
+        let page_data = MessagesPage::restore(restore_snapshot);
 
         assert_eq!(11, page_data.messages.len());
 

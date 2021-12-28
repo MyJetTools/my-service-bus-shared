@@ -20,6 +20,7 @@ pub enum MessageSize {
 
 pub struct MessagesPage {
     pub to_be_persisted: QueueWithIntervals,
+    pub being_persisted: QueueWithIntervals,
     full_loaded_messages: QueueWithIntervals,
     pub messages: BTreeMap<MessageId, MySbMessage>,
     pub size: usize,
@@ -34,6 +35,7 @@ impl MessagesPage {
             messages: BTreeMap::new(),
             size: 0,
             to_be_persisted: QueueWithIntervals::new(),
+            being_persisted: QueueWithIntervals::new(),
             is_being_persisted: false,
             full_loaded_messages: QueueWithIntervals::new(),
             page_id,
@@ -133,6 +135,14 @@ impl MessagesPage {
                 break;
             }
 
+            if self.to_be_persisted.has_message(msg_id) {
+                break;
+            }
+
+            if self.being_persisted.has_message(msg_id) {
+                break;
+            }
+
             if messages_to_gc_result.is_none() {
                 messages_to_gc_result = Some(Vec::new())
             }
@@ -147,12 +157,14 @@ impl MessagesPage {
         }
     }
 
-    pub fn get_messages_to_persist(&self) -> Option<Vec<MessageProtobufModel>> {
+    pub fn get_messages_to_persist(&mut self) -> Option<Vec<MessageProtobufModel>> {
         let mut result = None;
 
-        for msg in &self.to_be_persisted {
-            if let Some(message) = self.messages.get(&msg) {
+        while let Some(msg_id) = self.to_be_persisted.dequeue() {
+            if let Some(message) = self.messages.get(&msg_id) {
                 if let MySbMessage::Loaded(content) = message {
+                    self.being_persisted.enqueue(msg_id);
+
                     if result.is_none() {
                         result = Some(Vec::new());
                     }
@@ -170,10 +182,16 @@ impl MessagesPage {
         result
     }
 
-    pub fn persisted(&mut self, messages: QueueWithIntervals) {
-        for msg_id in &messages {
-            self.to_be_persisted.remove(msg_id);
+    pub fn persisted(&mut self) {
+        self.being_persisted.clean();
+    }
+
+    pub fn not_persisted(&mut self) {
+        for range in &self.being_persisted.intervals {
+            self.to_be_persisted.enqueue_range(range);
         }
+
+        self.being_persisted.clean();
     }
 }
 
@@ -274,5 +292,28 @@ mod tests {
                 panic!("We should not be here");
             }
         }
+    }
+
+    #[test]
+    fn test_being_persisted_and_back() {
+        let mut page = MessagesPage::create_empty(0);
+
+        page.new_message(MySbMessageContent {
+            id: 1,
+            content: vec![0u8, 1u8, 2u8],
+            time: DateTimeAsMicroseconds::now(),
+        });
+
+        if let Some(messages_to_persist) = page.get_messages_to_persist() {
+            assert_eq!(1, messages_to_persist.len());
+            assert_eq!(1, page.being_persisted.len());
+            assert_eq!(0, page.to_be_persisted.len());
+        } else {
+            panic!("Should not be here");
+        }
+
+        page.not_persisted();
+        assert_eq!(0, page.being_persisted.len());
+        assert_eq!(1, page.to_be_persisted.len());
     }
 }

@@ -37,6 +37,17 @@ impl QueueWithIntervals {
         self.intervals.extend(intervals)
     }
 
+    pub fn clean(&mut self) {
+        if let Some(first_interval) = self.intervals.get_mut(0) {
+            first_interval.from_id = 0;
+            first_interval.to_id = -1;
+        }
+
+        while self.intervals.len() > 1 {
+            self.intervals.remove(self.intervals.len() - 1);
+        }
+    }
+
     pub fn remove(&mut self, id: MessageId) -> bool {
         if self.intervals.len() == 0 {
             println!("We are trying to remove {} but queue is empty #1", id);
@@ -884,5 +895,16 @@ mod tests {
 
         assert_eq!(1, queue.intervals[0].from_id);
         assert_eq!(200, queue.intervals[0].to_id);
+    }
+
+    #[test]
+    fn test_clean_several_interavals() {
+        let mut queue = QueueWithIntervals::new();
+        queue.enqueue(2);
+        assert_eq!(1, queue.len());
+
+        queue.clean();
+
+        assert_eq!(0, queue.len());
     }
 }

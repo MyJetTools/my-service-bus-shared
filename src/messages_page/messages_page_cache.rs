@@ -1,9 +1,6 @@
 use std::collections::{hash_map::Values, HashMap};
 
-use crate::{
-    page_id::PageId, protobuf_models::MessageProtobufModel,
-    queue_with_intervals::QueueWithIntervals,
-};
+use crate::{page_id::PageId, protobuf_models::MessageProtobufModel};
 
 use super::MessagesPage;
 
@@ -81,8 +78,8 @@ impl MessagesPagesCache {
         result
     }
 
-    pub fn get_messages_to_persist(&self) -> Option<(PageId, Vec<MessageProtobufModel>)> {
-        for (page_id, page_data) in &self.pages {
+    pub fn get_messages_to_persist(&mut self) -> Option<(PageId, Vec<MessageProtobufModel>)> {
+        for (page_id, page_data) in &mut self.pages {
             let messages_to_persist = page_data.get_messages_to_persist();
 
             if let Some(messages) = messages_to_persist {
@@ -93,9 +90,15 @@ impl MessagesPagesCache {
         None
     }
 
-    pub fn persisted(&mut self, page_id: PageId, messages: QueueWithIntervals) {
+    pub fn persisted(&mut self, page_id: PageId) {
         if let Some(page) = self.pages.get_mut(&page_id) {
-            page.persisted(messages);
+            page.persisted();
+        }
+    }
+
+    pub fn not_persisted(&mut self, page_id: PageId) {
+        if let Some(page) = self.pages.get_mut(&page_id) {
+            page.not_persisted();
         }
     }
 }

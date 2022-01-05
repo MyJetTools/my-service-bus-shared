@@ -5,7 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     messages::{MySbMessage, MySbMessageContent},
     page_id::PageId,
-    protobuf_models::MessageProtobufModel,
+    protobuf_models::{MessageMetaDataProtobufModel, MessageProtobufModel},
     queue_with_intervals::QueueWithIntervals,
     MessageId,
 };
@@ -169,11 +169,22 @@ impl MessagesPage {
                         result = Some(Vec::new());
                     }
 
+                    let mut headers = Vec::new();
+
+                    if let Some(c_headers) = &content.headers {
+                        for (key, value) in c_headers {
+                            headers.push(MessageMetaDataProtobufModel {
+                                key: key.to_string(),
+                                value: value.to_string(),
+                            })
+                        }
+                    }
+
                     result.as_mut().unwrap().push(MessageProtobufModel {
                         created: Some(content.time.into()),
                         message_id: content.id,
                         data: content.content.clone(),
-                        metadata: Vec::new(),
+                        headers,
                     });
                 }
             }
@@ -214,6 +225,7 @@ mod tests {
                 id: 5,
                 time: DateTimeAsMicroseconds::now(),
                 content: vec![5u8, 5u8, 5u8],
+                headers: None,
             },
         );
 
@@ -223,6 +235,7 @@ mod tests {
                 id: 6,
                 time: DateTimeAsMicroseconds::now(),
                 content: vec![6u8, 6u8, 6u8],
+                headers: None,
             },
         );
 
@@ -232,6 +245,7 @@ mod tests {
                 id: 7,
                 time: DateTimeAsMicroseconds::now(),
                 content: vec![7u8, 7u8, 7u8],
+                headers: None,
             },
         );
 
@@ -241,6 +255,7 @@ mod tests {
                 id: 8,
                 time: DateTimeAsMicroseconds::now(),
                 content: vec![7u8, 7u8, 7u8],
+                headers: None,
             },
         );
 
@@ -302,6 +317,7 @@ mod tests {
             id: 1,
             content: vec![0u8, 1u8, 2u8],
             time: DateTimeAsMicroseconds::now(),
+            headers: None,
         });
 
         if let Some(messages_to_persist) = page.get_messages_to_persist() {

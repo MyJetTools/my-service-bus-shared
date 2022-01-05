@@ -86,6 +86,7 @@ mod tests {
                 id: 2,
                 content: vec![2, 2],
                 time: DateTimeAsMicroseconds::now(),
+                headers: None,
             },
         );
 
@@ -95,6 +96,7 @@ mod tests {
                 id: 4,
                 content: vec![4, 4, 4],
                 time: DateTimeAsMicroseconds::now(),
+                headers: None,
             },
         );
 

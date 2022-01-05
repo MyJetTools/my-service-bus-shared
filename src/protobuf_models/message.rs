@@ -11,7 +11,7 @@ pub struct MessageProtobufModel {
     #[prost(bytes, tag = "3")]
     pub data: Vec<u8>,
     #[prost(message, repeated, tag = "4")]
-    pub metadata: Vec<MessageMetaDataProtobufModel>,
+    pub headers: Vec<MessageMetaDataProtobufModel>,
 }
 
 impl MessageProtobufModel {

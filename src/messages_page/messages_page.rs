@@ -181,7 +181,7 @@ impl MessagesPage {
                     }
 
                     result.as_mut().unwrap().push(MessageProtobufModel {
-                        created: Some(content.time.into()),
+                        created: content.time.unix_microseconds,
                         message_id: content.id,
                         data: content.content.clone(),
                         headers,

@@ -1,13 +1,11 @@
 use prost::{DecodeError, EncodeError};
 
-use crate::bcl::BclDateTime;
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MessageProtobufModel {
     #[prost(int64, tag = "1")]
     pub message_id: i64,
-    #[prost(message, tag = "2")]
-    pub created: Option<BclDateTime>,
+    #[prost(int64, tag = "2")]
+    pub created: i64,
     #[prost(bytes, tag = "3")]
     pub data: Vec<u8>,
     #[prost(message, repeated, tag = "4")]

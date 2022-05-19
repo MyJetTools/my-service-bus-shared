@@ -1,4 +1,3 @@
-pub mod bcl;
 mod messages;
 pub mod messages_page;
 pub mod page_compressor;

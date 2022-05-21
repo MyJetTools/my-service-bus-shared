@@ -6,6 +6,7 @@ pub mod protobuf_models;
 pub mod queue;
 pub mod queue_with_intervals;
 pub mod settings;
+pub mod sub_page;
 
 pub use messages::{MessageId, MySbMessage, MySbMessageContent};
 

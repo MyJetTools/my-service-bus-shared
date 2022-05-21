@@ -1,15 +1,22 @@
 #[derive(Debug, Clone)]
-pub struct InvalidTopicOrQueueName(String);
+pub enum InvalidTopicOrQueueName {
+    InvalidNameFormat(String),
+    NameIsReserved,
+}
 
 pub fn validate_topic_or_queue_name(name: &str) -> Result<(), InvalidTopicOrQueueName> {
+    if name == "topics" {
+        return Err(InvalidTopicOrQueueName::NameIsReserved);
+    }
+
     if name.len() < 3 {
-        return Err(InvalidTopicOrQueueName(
+        return Err(InvalidTopicOrQueueName::InvalidNameFormat(
             "Table name must contain at least 3 symbols".to_string(),
         ));
     }
 
     if name.len() > 63 {
-        return Err(InvalidTopicOrQueueName(
+        return Err(InvalidTopicOrQueueName::InvalidNameFormat(
             "Table name must contain 3-63 symbols".to_string(),
         ));
     }
@@ -25,7 +32,7 @@ pub fn validate_topic_or_queue_name(name: &str) -> Result<(), InvalidTopicOrQueu
 
         if i == 0 {
             if c == '-' {
-                return Err(InvalidTopicOrQueueName(format!(
+                return Err(InvalidTopicOrQueueName::InvalidNameFormat(format!(
                     "Table can not be started from '-' symbol",
                 )));
             }
@@ -33,14 +40,14 @@ pub fn validate_topic_or_queue_name(name: &str) -> Result<(), InvalidTopicOrQueu
 
         if i == as_bytes.len() - 1 {
             if c == '-' {
-                return Err(InvalidTopicOrQueueName(format!(
+                return Err(InvalidTopicOrQueueName::InvalidNameFormat(format!(
                     "Table can not be ended with '-' symbol",
                 )));
             }
         }
 
         if !symbol_is_allowed(c) {
-            return Err(InvalidTopicOrQueueName(format!(
+            return Err(InvalidTopicOrQueueName::InvalidNameFormat(format!(
                 "Symbol {} is not allowed which stays at position {}",
                 c, i
             )));
@@ -49,7 +56,7 @@ pub fn validate_topic_or_queue_name(name: &str) -> Result<(), InvalidTopicOrQueu
         if c == '-' {
             if let Some(prev_char) = prev_char {
                 if prev_char == '-' {
-                    return Err(InvalidTopicOrQueueName(format!(
+                    return Err(InvalidTopicOrQueueName::InvalidNameFormat(format!(
                         "Two following '-' symbols are not allowed. Check please position {}",
                         i
                     )));
@@ -98,9 +105,11 @@ mod test {
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            println!("{:?}", err);
-        } else {
-            panic!("Should not be here");
+            if let InvalidTopicOrQueueName::InvalidNameFormat(name) = err {
+                println!("{}", name);
+            } else {
+                panic!("Should not be here");
+            }
         }
     }
 
@@ -113,9 +122,11 @@ mod test {
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            println!("{:?}", err);
-        } else {
-            panic!("Should not be here");
+            if let InvalidTopicOrQueueName::InvalidNameFormat(name) = err {
+                println!("{}", name);
+            } else {
+                panic!("Should not be here");
+            }
         }
     }
 
@@ -128,9 +139,11 @@ mod test {
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            println!("{:?}", err);
-        } else {
-            panic!("Should not be here");
+            if let InvalidTopicOrQueueName::InvalidNameFormat(name) = err {
+                println!("{}", name);
+            } else {
+                panic!("Should not be here");
+            }
         }
     }
 
@@ -143,9 +156,27 @@ mod test {
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            println!("{:?}", err);
-        } else {
-            panic!("Should not be here");
+            if let InvalidTopicOrQueueName::InvalidNameFormat(name) = err {
+                println!("{}", name);
+            } else {
+                panic!("Should not be here");
+            }
+        }
+    }
+
+    #[test]
+    fn test_we_handle_reserved_name() {
+        let test_table_name = "topics";
+
+        let result = validate_topic_or_queue_name(test_table_name);
+
+        assert_eq!(false, result.is_ok());
+
+        if let Err(err) = result {
+            if let InvalidTopicOrQueueName::NameIsReserved = err {
+            } else {
+                panic!("Should not be here");
+            }
         }
     }
 }

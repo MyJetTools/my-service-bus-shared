@@ -1,22 +1,22 @@
 #[derive(Debug, Clone)]
-pub enum InvalidTopicOrQueueName {
+pub enum InvalidTopicName {
     InvalidNameFormat(String),
     NameIsReserved,
 }
 
-pub fn validate_topic_or_queue_name(name: &str) -> Result<(), InvalidTopicOrQueueName> {
+pub fn validate_topic_name(name: &str) -> Result<(), InvalidTopicName> {
     if name == "topics" {
-        return Err(InvalidTopicOrQueueName::NameIsReserved);
+        return Err(InvalidTopicName::NameIsReserved);
     }
 
     if name.len() < 3 {
-        return Err(InvalidTopicOrQueueName::InvalidNameFormat(
+        return Err(InvalidTopicName::InvalidNameFormat(
             "Table name must contain at least 3 symbols".to_string(),
         ));
     }
 
     if name.len() > 63 {
-        return Err(InvalidTopicOrQueueName::InvalidNameFormat(
+        return Err(InvalidTopicName::InvalidNameFormat(
             "Table name must contain 3-63 symbols".to_string(),
         ));
     }
@@ -32,7 +32,7 @@ pub fn validate_topic_or_queue_name(name: &str) -> Result<(), InvalidTopicOrQueu
 
         if i == 0 {
             if c == '-' {
-                return Err(InvalidTopicOrQueueName::InvalidNameFormat(format!(
+                return Err(InvalidTopicName::InvalidNameFormat(format!(
                     "Table can not be started from '-' symbol",
                 )));
             }
@@ -40,14 +40,14 @@ pub fn validate_topic_or_queue_name(name: &str) -> Result<(), InvalidTopicOrQueu
 
         if i == as_bytes.len() - 1 {
             if c == '-' {
-                return Err(InvalidTopicOrQueueName::InvalidNameFormat(format!(
+                return Err(InvalidTopicName::InvalidNameFormat(format!(
                     "Table can not be ended with '-' symbol",
                 )));
             }
         }
 
         if !symbol_is_allowed(c) {
-            return Err(InvalidTopicOrQueueName::InvalidNameFormat(format!(
+            return Err(InvalidTopicName::InvalidNameFormat(format!(
                 "Symbol {} is not allowed which stays at position {}",
                 c, i
             )));
@@ -56,7 +56,7 @@ pub fn validate_topic_or_queue_name(name: &str) -> Result<(), InvalidTopicOrQueu
         if c == '-' {
             if let Some(prev_char) = prev_char {
                 if prev_char == '-' {
-                    return Err(InvalidTopicOrQueueName::InvalidNameFormat(format!(
+                    return Err(InvalidTopicName::InvalidNameFormat(format!(
                         "Two following '-' symbols are not allowed. Check please position {}",
                         i
                     )));
@@ -91,7 +91,7 @@ mod test {
     fn test_lower_cases_and_dashes_ok() {
         let test_table_name = "my-test-name-5";
 
-        let result = validate_topic_or_queue_name(test_table_name);
+        let result = validate_topic_name(test_table_name);
 
         assert_eq!(true, result.is_ok());
     }
@@ -100,12 +100,12 @@ mod test {
     fn test_lower_cases_and_two_dashes() {
         let test_table_name = "my-test--name";
 
-        let result = validate_topic_or_queue_name(test_table_name);
+        let result = validate_topic_name(test_table_name);
 
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            if let InvalidTopicOrQueueName::InvalidNameFormat(name) = err {
+            if let InvalidTopicName::InvalidNameFormat(name) = err {
                 println!("{}", name);
             } else {
                 panic!("Should not be here");
@@ -117,12 +117,12 @@ mod test {
     fn test_lower_cases_and_start_with_dash() {
         let test_table_name = "-my-test-name";
 
-        let result = validate_topic_or_queue_name(test_table_name);
+        let result = validate_topic_name(test_table_name);
 
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            if let InvalidTopicOrQueueName::InvalidNameFormat(name) = err {
+            if let InvalidTopicName::InvalidNameFormat(name) = err {
                 println!("{}", name);
             } else {
                 panic!("Should not be here");
@@ -134,12 +134,12 @@ mod test {
     fn test_lower_cases_and_ended_with_dash() {
         let test_table_name = "my-test-name-";
 
-        let result = validate_topic_or_queue_name(test_table_name);
+        let result = validate_topic_name(test_table_name);
 
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            if let InvalidTopicOrQueueName::InvalidNameFormat(name) = err {
+            if let InvalidTopicName::InvalidNameFormat(name) = err {
                 println!("{}", name);
             } else {
                 panic!("Should not be here");
@@ -151,12 +151,12 @@ mod test {
     fn test_upper_cases_and_ended_with_dash() {
         let test_table_name = "my-test-Name";
 
-        let result = validate_topic_or_queue_name(test_table_name);
+        let result = validate_topic_name(test_table_name);
 
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            if let InvalidTopicOrQueueName::InvalidNameFormat(name) = err {
+            if let InvalidTopicName::InvalidNameFormat(name) = err {
                 println!("{}", name);
             } else {
                 panic!("Should not be here");
@@ -168,12 +168,12 @@ mod test {
     fn test_we_handle_reserved_name() {
         let test_table_name = "topics";
 
-        let result = validate_topic_or_queue_name(test_table_name);
+        let result = validate_topic_name(test_table_name);
 
         assert_eq!(false, result.is_ok());
 
         if let Err(err) = result {
-            if let InvalidTopicOrQueueName::NameIsReserved = err {
+            if let InvalidTopicName::NameIsReserved = err {
             } else {
                 panic!("Should not be here");
             }

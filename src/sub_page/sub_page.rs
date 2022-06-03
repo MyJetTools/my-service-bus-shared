@@ -1,7 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use std::collections::BTreeMap;
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
 
@@ -19,7 +16,7 @@ pub struct SubPage {
     pub sub_page_id: SubPageId,
     pub messages: BTreeMap<i64, MessageStatus>,
     pub created: DateTimeAsMicroseconds,
-    size: AtomicUsize,
+    size: usize,
 }
 
 impl SubPage {
@@ -28,31 +25,30 @@ impl SubPage {
             sub_page_id,
             messages: BTreeMap::new(),
             created: DateTimeAsMicroseconds::now(),
-            size: AtomicUsize::new(0),
+            size: 0,
         }
     }
 
     pub fn restored(sub_page_id: SubPageId, messages: BTreeMap<i64, MessageStatus>) -> Self {
-        let messages_size = calculate_size(&messages);
+        let size = calculate_size(&messages);
 
         Self {
             sub_page_id,
             messages: messages,
             created: DateTimeAsMicroseconds::now(),
-            size: AtomicUsize::new(messages_size),
+            size,
         }
     }
 
     pub async fn add_messages(&mut self, new_messages: Vec<MessageProtobufModel>) {
         for message in new_messages {
-            self.size.fetch_add(message.data.len(), Ordering::SeqCst);
+            self.size += message.data.len();
             if let Some(old_message) = self
                 .messages
                 .insert(message.message_id, MessageStatus::Loaded(message))
             {
                 if let MessageStatus::Loaded(old_message) = old_message {
-                    self.size
-                        .fetch_sub(old_message.data.len(), Ordering::SeqCst);
+                    self.size -= old_message.data.len();
                 }
             }
         }
@@ -79,7 +75,7 @@ impl SubPage {
     }
 
     pub fn get_size(&self) -> usize {
-        self.size.load(Ordering::Relaxed)
+        self.size
     }
 }
 

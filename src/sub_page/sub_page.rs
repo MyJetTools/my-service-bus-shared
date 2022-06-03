@@ -40,6 +40,18 @@ impl SubPage {
         }
     }
 
+    pub async fn add_message(&mut self, message: MessageProtobufModel) {
+        self.size += message.data.len();
+        if let Some(old_message) = self
+            .messages
+            .insert(message.message_id, MessageStatus::Loaded(message))
+        {
+            if let MessageStatus::Loaded(old_message) = old_message {
+                self.size -= old_message.data.len();
+            }
+        }
+    }
+
     pub async fn add_messages(&mut self, new_messages: Vec<MessageProtobufModel>) {
         for message in new_messages {
             self.size += message.data.len();

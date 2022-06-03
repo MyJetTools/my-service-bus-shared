@@ -40,7 +40,7 @@ impl SubPage {
         }
     }
 
-    pub async fn add_message(&mut self, message: MessageProtobufModel) {
+    pub fn add_message(&mut self, message: MessageProtobufModel) {
         self.size += message.data.len();
         if let Some(old_message) = self
             .messages
@@ -52,7 +52,7 @@ impl SubPage {
         }
     }
 
-    pub async fn add_messages(&mut self, new_messages: Vec<MessageProtobufModel>) {
+    pub fn add_messages(&mut self, new_messages: Vec<MessageProtobufModel>) {
         for message in new_messages {
             self.size += message.data.len();
             if let Some(old_message) = self
@@ -66,15 +66,11 @@ impl SubPage {
         }
     }
 
-    pub async fn get_message(&self, message_id: MessageId) -> Option<MessageStatus> {
+    pub fn get_message(&self, message_id: MessageId) -> Option<MessageStatus> {
         let result = self.messages.get(&message_id)?;
         Some(result.clone())
     }
-    pub async fn get_messages(
-        &self,
-        from_id: MessageId,
-        to_id: MessageId,
-    ) -> Option<Vec<MessageStatus>> {
+    pub fn get_messages(&self, from_id: MessageId, to_id: MessageId) -> Option<Vec<MessageStatus>> {
         let mut result = LazyVec::new();
 
         for message_id in from_id..=to_id {

@@ -66,9 +66,8 @@ impl SubPage {
         }
     }
 
-    pub fn get_message(&self, message_id: MessageId) -> Option<MessageStatus> {
-        let result = self.messages.get(&message_id)?;
-        Some(result.clone())
+    pub fn get_message(&self, message_id: MessageId) -> Option<&MessageStatus> {
+        self.messages.get(&message_id)
     }
     pub fn get_messages(&self, from_id: MessageId, to_id: MessageId) -> Option<Vec<MessageStatus>> {
         let mut result = LazyVec::new();

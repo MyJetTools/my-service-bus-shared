@@ -4,7 +4,6 @@ use std::{
 };
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
-use tokio::sync::Mutex;
 
 use crate::{protobuf_models::MessageProtobufModel, MessageId};
 
@@ -18,7 +17,7 @@ pub enum MessageStatus {
 
 pub struct SubPage {
     pub sub_page_id: SubPageId,
-    pub messages: Mutex<BTreeMap<i64, MessageStatus>>,
+    pub messages: BTreeMap<i64, MessageStatus>,
     pub created: DateTimeAsMicroseconds,
     size: AtomicUsize,
 }
@@ -27,7 +26,7 @@ impl SubPage {
     pub fn new(sub_page_id: SubPageId) -> Self {
         Self {
             sub_page_id,
-            messages: Mutex::new(BTreeMap::new()),
+            messages: BTreeMap::new(),
             created: DateTimeAsMicroseconds::now(),
             size: AtomicUsize::new(0),
         }
@@ -38,19 +37,18 @@ impl SubPage {
 
         Self {
             sub_page_id,
-            messages: Mutex::new(messages),
+            messages: messages,
             created: DateTimeAsMicroseconds::now(),
             size: AtomicUsize::new(messages_size),
         }
     }
 
-    pub async fn add_messages(&self, new_messages: Vec<MessageProtobufModel>) {
-        let mut messages = self.messages.lock().await;
-
+    pub async fn add_messages(&mut self, new_messages: Vec<MessageProtobufModel>) {
         for message in new_messages {
             self.size.fetch_add(message.data.len(), Ordering::SeqCst);
-            if let Some(old_message) =
-                messages.insert(message.message_id, MessageStatus::Loaded(message))
+            if let Some(old_message) = self
+                .messages
+                .insert(message.message_id, MessageStatus::Loaded(message))
             {
                 if let MessageStatus::Loaded(old_message) = old_message {
                     self.size
@@ -61,8 +59,7 @@ impl SubPage {
     }
 
     pub async fn get_message(&self, message_id: MessageId) -> Option<MessageStatus> {
-        let messages = self.messages.lock().await;
-        let result = messages.get(&message_id)?;
+        let result = self.messages.get(&message_id)?;
         Some(result.clone())
     }
     pub async fn get_messages(
@@ -71,10 +68,9 @@ impl SubPage {
         to_id: MessageId,
     ) -> Option<Vec<MessageStatus>> {
         let mut result = LazyVec::new();
-        let messages = self.messages.lock().await;
 
         for message_id in from_id..=to_id {
-            if let Some(msg) = messages.get(&message_id) {
+            if let Some(msg) = self.messages.get(&message_id) {
                 result.add(msg.clone());
             }
         }

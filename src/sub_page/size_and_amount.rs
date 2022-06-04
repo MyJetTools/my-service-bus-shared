@@ -18,4 +18,9 @@ impl SizeAndAmount {
         self.size -= size;
         self.amount -= 1;
     }
+
+    pub fn append(&mut self, other: &SizeAndAmount) {
+        self.size += other.size;
+        self.amount += other.amount;
+    }
 }

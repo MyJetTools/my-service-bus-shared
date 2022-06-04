@@ -24,7 +24,7 @@ impl SubPageId {
         result as MessageId
     }
 
-    pub fn get_first_message_id_of_next_page(&self) -> MessageId {
+    pub fn get_first_message_id_of_next_sub_page(&self) -> MessageId {
         self.get_first_message_id() + SUB_PAGE_MESSAGES_AMOUNT as MessageId
     }
 
@@ -46,8 +46,17 @@ mod test {
 
     #[test]
     fn test_first_message_id_of_next_page() {
-        assert_eq!(1000, SubPageId::new(0).get_first_message_id_of_next_page());
-        assert_eq!(2000, SubPageId::new(1).get_first_message_id_of_next_page());
-        assert_eq!(3000, SubPageId::new(2).get_first_message_id_of_next_page());
+        assert_eq!(
+            1000,
+            SubPageId::new(0).get_first_message_id_of_next_sub_page()
+        );
+        assert_eq!(
+            2000,
+            SubPageId::new(1).get_first_message_id_of_next_sub_page()
+        );
+        assert_eq!(
+            3000,
+            SubPageId::new(2).get_first_message_id_of_next_sub_page()
+        );
     }
 }

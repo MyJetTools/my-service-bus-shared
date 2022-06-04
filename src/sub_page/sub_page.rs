@@ -4,7 +4,7 @@ use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
 
 use crate::{MessageId, MySbMessage, MySbMessageContent};
 
-use super::SubPageId;
+use super::{SizeAndAmount, SubPageId};
 
 pub enum SubPageMessages {
     AllAreMissing,
@@ -15,7 +15,7 @@ pub struct SubPage {
     pub sub_page_id: SubPageId,
     pub messages: SubPageMessages,
     pub created: DateTimeAsMicroseconds,
-    size: usize,
+    size_and_amount: SizeAndAmount,
 }
 
 impl SubPage {
@@ -24,18 +24,18 @@ impl SubPage {
             sub_page_id,
             messages: SubPageMessages::Messages(BTreeMap::new()),
             created: DateTimeAsMicroseconds::now(),
-            size: 0,
+            size_and_amount: SizeAndAmount::new(),
         }
     }
 
     pub fn restored(sub_page_id: SubPageId, messages: BTreeMap<i64, MySbMessage>) -> Self {
-        let size = calculate_size(&messages);
+        let size_and_amount = calculate_size_and_messages_amount(&messages);
 
         Self {
             sub_page_id,
             messages: SubPageMessages::Messages(messages),
             created: DateTimeAsMicroseconds::now(),
-            size,
+            size_and_amount,
         }
     }
 
@@ -44,7 +44,7 @@ impl SubPage {
             sub_page_id,
             messages: SubPageMessages::AllAreMissing,
             created: DateTimeAsMicroseconds::now(),
-            size: 0,
+            size_and_amount: SizeAndAmount::new(),
         }
     }
 
@@ -54,11 +54,11 @@ impl SubPage {
                 panic!("You can not insert message into sub page with all messages missing");
             }
             SubPageMessages::Messages(messages) => {
-                self.size += message.content.len();
+                self.size_and_amount.added(message.content.len());
                 if let Some(old_message) = messages.insert(message.id, MySbMessage::Loaded(message))
                 {
                     if let MySbMessage::Loaded(old_message) = old_message {
-                        self.size -= old_message.content.len();
+                        self.size_and_amount.removed(old_message.content.len());
                     }
                 }
             }
@@ -72,12 +72,12 @@ impl SubPage {
             }
             SubPageMessages::Messages(messages) => {
                 for message in new_messages {
-                    self.size += message.content.len();
+                    self.size_and_amount.added(message.content.len());
                     if let Some(old_message) =
                         messages.insert(message.id, MySbMessage::Loaded(message))
                     {
                         if let MySbMessage::Loaded(old_message) = old_message {
-                            self.size -= old_message.content.len();
+                            self.size_and_amount.removed(old_message.content.len());
                         }
                     }
                 }
@@ -108,19 +108,26 @@ impl SubPage {
         }
     }
 
-    pub fn get_size(&self) -> usize {
-        self.size
+    pub fn get_size_and_amount(&self) -> SizeAndAmount {
+        self.size_and_amount.clone()
+    }
+
+    pub fn get_messages_amount(&self) -> usize {
+        match &self.messages {
+            SubPageMessages::AllAreMissing => 0,
+            SubPageMessages::Messages(messages) => messages.len(),
+        }
     }
 }
 
-fn calculate_size(msgs: &BTreeMap<i64, MySbMessage>) -> usize {
-    let mut size = 0;
+fn calculate_size_and_messages_amount(msgs: &BTreeMap<i64, MySbMessage>) -> SizeAndAmount {
+    let mut result = SizeAndAmount::new();
 
     for msg in msgs.values() {
         if let MySbMessage::Loaded(msg) = msg {
-            size += msg.content.len();
+            result.added(msg.content.len());
         }
     }
 
-    size
+    result
 }

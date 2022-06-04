@@ -108,8 +108,8 @@ impl SubPage {
         }
     }
 
-    pub fn get_size_and_amount(&self) -> SizeAndAmount {
-        self.size_and_amount.clone()
+    pub fn get_size_and_amount(&self) -> &SizeAndAmount {
+        &self.size_and_amount
     }
 
     pub fn get_messages_amount(&self) -> usize {

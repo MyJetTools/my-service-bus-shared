@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::MessageId;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MySbMessageContent {
     pub id: MessageId,
     pub content: Vec<u8>,

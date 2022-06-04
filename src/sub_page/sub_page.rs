@@ -2,19 +2,13 @@ use std::collections::BTreeMap;
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
 
-use crate::{protobuf_models::MessageProtobufModel, MessageId};
+use crate::{MessageId, MySbMessage, MySbMessageContent};
 
 use super::SubPageId;
 
-#[derive(Debug, Clone)]
-pub enum MessageStatus {
-    Loaded(MessageProtobufModel),
-    Missing,
-}
-
 pub struct SubPage {
     pub sub_page_id: SubPageId,
-    pub messages: BTreeMap<i64, MessageStatus>,
+    pub messages: BTreeMap<i64, MySbMessage>,
     pub created: DateTimeAsMicroseconds,
     size: usize,
 }
@@ -29,7 +23,7 @@ impl SubPage {
         }
     }
 
-    pub fn restored(sub_page_id: SubPageId, messages: BTreeMap<i64, MessageStatus>) -> Self {
+    pub fn restored(sub_page_id: SubPageId, messages: BTreeMap<i64, MySbMessage>) -> Self {
         let size = calculate_size(&messages);
 
         Self {
@@ -40,41 +34,41 @@ impl SubPage {
         }
     }
 
-    pub fn add_message(&mut self, message: MessageProtobufModel) {
-        self.size += message.data.len();
+    pub fn add_message(&mut self, message: MySbMessageContent) {
+        self.size += message.content.len();
         if let Some(old_message) = self
             .messages
-            .insert(message.message_id, MessageStatus::Loaded(message))
+            .insert(message.id, MySbMessage::Loaded(message))
         {
-            if let MessageStatus::Loaded(old_message) = old_message {
-                self.size -= old_message.data.len();
+            if let MySbMessage::Loaded(old_message) = old_message {
+                self.size -= old_message.content.len();
             }
         }
     }
 
-    pub fn add_messages(&mut self, new_messages: Vec<MessageProtobufModel>) {
+    pub fn add_messages(&mut self, new_messages: Vec<MySbMessageContent>) {
         for message in new_messages {
-            self.size += message.data.len();
+            self.size += message.content.len();
             if let Some(old_message) = self
                 .messages
-                .insert(message.message_id, MessageStatus::Loaded(message))
+                .insert(message.id, MySbMessage::Loaded(message))
             {
-                if let MessageStatus::Loaded(old_message) = old_message {
-                    self.size -= old_message.data.len();
+                if let MySbMessage::Loaded(old_message) = old_message {
+                    self.size -= old_message.content.len();
                 }
             }
         }
     }
 
-    pub fn get_message(&self, message_id: MessageId) -> Option<&MessageStatus> {
+    pub fn get_message(&self, message_id: MessageId) -> Option<&MySbMessage> {
         self.messages.get(&message_id)
     }
-    pub fn get_messages(&self, from_id: MessageId, to_id: MessageId) -> Option<Vec<MessageStatus>> {
+    pub fn get_messages(&self, from_id: MessageId, to_id: MessageId) -> Option<Vec<&MySbMessage>> {
         let mut result = LazyVec::new();
 
         for message_id in from_id..=to_id {
             if let Some(msg) = self.messages.get(&message_id) {
-                result.add(msg.clone());
+                result.add(msg);
             }
         }
 
@@ -86,12 +80,12 @@ impl SubPage {
     }
 }
 
-fn calculate_size(msgs: &BTreeMap<i64, MessageStatus>) -> usize {
+fn calculate_size(msgs: &BTreeMap<i64, MySbMessage>) -> usize {
     let mut size = 0;
 
     for msg in msgs.values() {
-        if let MessageStatus::Loaded(msg) = msg {
-            size += msg.data.len();
+        if let MySbMessage::Loaded(msg) = msg {
+            size += msg.content.len();
         }
     }
 

@@ -1,3 +1,5 @@
+//TODO - Delete It
+/*
 use std::collections::HashMap;
 
 use crate::{
@@ -49,19 +51,15 @@ impl Iterator for MessagesPageRestoreSnapshot {
 
         let id = self.current_message_id;
 
-        let result = if self.current_message_id < self.requested_from_id {
-            MySbMessage::NotLoaded { id }
-        } else {
-            match &mut self.messages {
-                Some(message) => {
-                    if let Some(content) = message.remove(&id) {
-                        MySbMessage::Loaded(content)
-                    } else {
-                        MySbMessage::Missing { id }
-                    }
+        let result = match &mut self.messages {
+            Some(message) => {
+                if let Some(content) = message.remove(&id) {
+                    MySbMessage::Loaded(content)
+                } else {
+                    MySbMessage::Missing { id }
                 }
-                None => MySbMessage::Missing { id },
             }
+            None => MySbMessage::Missing { id },
         };
 
         self.current_message_id += 1;
@@ -151,3 +149,4 @@ mod tests {
         }
     }
 }
+ */

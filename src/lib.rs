@@ -1,5 +1,6 @@
 mod messages;
-pub mod messages_page;
+//TODO - Restore or delete
+//pub mod messages_page;
 pub mod page_compressor;
 pub mod page_id;
 pub mod protobuf_models;

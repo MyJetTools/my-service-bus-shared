@@ -1,10 +1,9 @@
 use crate::{MessageId, MySbMessageContent};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MySbMessage {
     Loaded(MySbMessageContent),
     Missing { id: MessageId },
-    NotLoaded { id: MessageId },
 }
 
 impl MySbMessage {
@@ -12,7 +11,6 @@ impl MySbMessage {
         match self {
             MySbMessage::Loaded(msg) => msg.content.len(),
             MySbMessage::Missing { id: _ } => 0,
-            MySbMessage::NotLoaded { id: _ } => 0,
         }
     }
 
@@ -20,7 +18,6 @@ impl MySbMessage {
         match self {
             MySbMessage::Loaded(msg) => msg.id,
             MySbMessage::Missing { id } => *id,
-            MySbMessage::NotLoaded { id } => *id,
         }
     }
 }

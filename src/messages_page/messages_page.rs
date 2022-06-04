@@ -10,8 +10,6 @@ use crate::{
     MessageId,
 };
 
-use super::MessagesPageRestoreSnapshot;
-
 pub enum MessageSize {
     MessageIsReady(usize),
     NotLoaded,
@@ -43,16 +41,17 @@ impl MessagesPage {
         }
     }
 
-    pub fn restore(snapshot: MessagesPageRestoreSnapshot) -> Self {
-        let mut result = MessagesPage::create_empty(snapshot.page_id);
+    /*
+       pub fn restore(snapshot: MessagesPageRestoreSnapshot) -> Self {
+           let mut result = MessagesPage::create_empty(snapshot.page_id);
 
-        for msg in snapshot {
-            result.update_message(msg);
-        }
+           for msg in snapshot {
+               result.update_message(msg);
+           }
 
-        result
-    }
-
+           result
+       }
+    */
     pub fn new_message(&mut self, msg: MySbMessageContent) {
         self.size += msg.content.len();
 
@@ -115,7 +114,6 @@ impl MessagesPage {
         match msg.unwrap() {
             MySbMessage::Loaded(msg) => MessageSize::MessageIsReady(msg.content.len()),
             MySbMessage::Missing { id: _ } => MessageSize::Missing,
-            MySbMessage::NotLoaded { id: _ } => MessageSize::NotLoaded,
         }
     }
 
@@ -127,35 +125,37 @@ impl MessagesPage {
         self.update_messages(messages_to_gc);
     }
 
-    pub fn gc_messages(&mut self, up_to_message_id: MessageId) {
-        let mut messages_to_gc_result = None;
+    /*
+       pub fn gc_messages(&mut self, up_to_message_id: MessageId) {
+           let mut messages_to_gc_result = None;
 
-        for msg_id in &self.full_loaded_messages {
-            if msg_id >= up_to_message_id {
-                break;
-            }
+           for msg_id in &self.full_loaded_messages {
+               if msg_id >= up_to_message_id {
+                   break;
+               }
 
-            if self.to_be_persisted.has_message(msg_id) {
-                break;
-            }
+               if self.to_be_persisted.has_message(msg_id) {
+                   break;
+               }
 
-            if self.being_persisted.has_message(msg_id) {
-                break;
-            }
+               if self.being_persisted.has_message(msg_id) {
+                   break;
+               }
 
-            if messages_to_gc_result.is_none() {
-                messages_to_gc_result = Some(Vec::new())
-            }
+               if messages_to_gc_result.is_none() {
+                   messages_to_gc_result = Some(Vec::new())
+               }
 
-            if let Some(vec) = &mut messages_to_gc_result {
-                vec.push(MySbMessage::NotLoaded { id: msg_id });
-            }
-        }
+               if let Some(vec) = &mut messages_to_gc_result {
+                   vec.remove(&msg_id);
+               }
+           }
 
-        if let Some(messages_to_gc) = messages_to_gc_result {
-            self.gc(messages_to_gc);
-        }
-    }
+           if let Some(messages_to_gc) = messages_to_gc_result {
+               self.gc(messages_to_gc);
+           }
+       }
+    */
 
     pub fn get_messages_to_persist(&mut self) -> Option<Vec<MessageProtobufModel>> {
         let mut result = None;
@@ -206,80 +206,80 @@ impl MessagesPage {
     }
 }
 
+//TODO - Restore or Delete
+/*
 #[cfg(test)]
 mod tests {
-
-    use std::collections::HashMap;
 
     use rust_extensions::date_time::DateTimeAsMicroseconds;
 
     use super::*;
 
-    #[test]
-    pub fn test_gc_messages() {
-        let mut msgs_to_restore = HashMap::new();
+       #[test]
+       pub fn test_gc_messages() {
+           let mut msgs_to_restore = HashMap::new();
 
-        msgs_to_restore.insert(
-            5,
-            MySbMessageContent {
-                id: 5,
-                time: DateTimeAsMicroseconds::now(),
-                content: vec![5u8, 5u8, 5u8],
-                headers: None,
-            },
-        );
+           msgs_to_restore.insert(
+               5,
+               MySbMessageContent {
+                   id: 5,
+                   time: DateTimeAsMicroseconds::now(),
+                   content: vec![5u8, 5u8, 5u8],
+                   headers: None,
+               },
+           );
 
-        msgs_to_restore.insert(
-            6,
-            MySbMessageContent {
-                id: 6,
-                time: DateTimeAsMicroseconds::now(),
-                content: vec![6u8, 6u8, 6u8],
-                headers: None,
-            },
-        );
+           msgs_to_restore.insert(
+               6,
+               MySbMessageContent {
+                   id: 6,
+                   time: DateTimeAsMicroseconds::now(),
+                   content: vec![6u8, 6u8, 6u8],
+                   headers: None,
+               },
+           );
 
-        msgs_to_restore.insert(
-            7,
-            MySbMessageContent {
-                id: 7,
-                time: DateTimeAsMicroseconds::now(),
-                content: vec![7u8, 7u8, 7u8],
-                headers: None,
-            },
-        );
+           msgs_to_restore.insert(
+               7,
+               MySbMessageContent {
+                   id: 7,
+                   time: DateTimeAsMicroseconds::now(),
+                   content: vec![7u8, 7u8, 7u8],
+                   headers: None,
+               },
+           );
 
-        msgs_to_restore.insert(
-            8,
-            MySbMessageContent {
-                id: 8,
-                time: DateTimeAsMicroseconds::now(),
-                content: vec![7u8, 7u8, 7u8],
-                headers: None,
-            },
-        );
+           msgs_to_restore.insert(
+               8,
+               MySbMessageContent {
+                   id: 8,
+                   time: DateTimeAsMicroseconds::now(),
+                   content: vec![7u8, 7u8, 7u8],
+                   headers: None,
+               },
+           );
 
-        let mut restore_snapshot = MessagesPageRestoreSnapshot::new(0, 5, 8);
-        restore_snapshot.messages = Some(msgs_to_restore);
+           let mut restore_snapshot = MessagesPageRestoreSnapshot::new(0, 5, 8);
+           restore_snapshot.messages = Some(msgs_to_restore);
 
-        let mut page_data = MessagesPage::restore(restore_snapshot);
+           let mut page_data = MessagesPage::restore(restore_snapshot);
 
-        assert_eq!(4, page_data.full_loaded_messages.len());
+           assert_eq!(4, page_data.full_loaded_messages.len());
 
-        assert_eq!(true, page_data.full_loaded_messages.has_message(5));
-        assert_eq!(true, page_data.full_loaded_messages.has_message(6));
-        assert_eq!(true, page_data.full_loaded_messages.has_message(7));
-        assert_eq!(true, page_data.full_loaded_messages.has_message(8));
+           assert_eq!(true, page_data.full_loaded_messages.has_message(5));
+           assert_eq!(true, page_data.full_loaded_messages.has_message(6));
+           assert_eq!(true, page_data.full_loaded_messages.has_message(7));
+           assert_eq!(true, page_data.full_loaded_messages.has_message(8));
 
-        page_data.gc_messages(7);
+           page_data.gc_messages(7);
 
-        assert_eq!(2, page_data.full_loaded_messages.len());
+           assert_eq!(2, page_data.full_loaded_messages.len());
 
-        assert_eq!(false, page_data.full_loaded_messages.has_message(5));
-        assert_eq!(false, page_data.full_loaded_messages.has_message(6));
-        assert_eq!(true, page_data.full_loaded_messages.has_message(7));
-        assert_eq!(true, page_data.full_loaded_messages.has_message(8));
-    }
+           assert_eq!(false, page_data.full_loaded_messages.has_message(5));
+           assert_eq!(false, page_data.full_loaded_messages.has_message(6));
+           assert_eq!(true, page_data.full_loaded_messages.has_message(7));
+           assert_eq!(true, page_data.full_loaded_messages.has_message(8));
+       }
 
     #[test]
     fn test_new_with_all_missing_and_loaded() {
@@ -299,10 +299,9 @@ mod tests {
         }
 
         for msg_id in 0..5 {
-            let msg = page_data.messages.get(&msg_id).unwrap();
+            let msg = page_data.messages.get(&msg_id);
 
-            if let MySbMessage::NotLoaded { id } = msg {
-                assert_eq!(*id, msg_id);
+            if msg.is_none() {
             } else {
                 panic!("We should not be here");
             }
@@ -332,4 +331,6 @@ mod tests {
         assert_eq!(0, page.being_persisted.len());
         assert_eq!(1, page.to_be_persisted.len());
     }
+
 }
+*/

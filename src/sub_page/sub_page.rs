@@ -91,6 +91,13 @@ impl SubPage {
             SubPageMessages::Messages(messages) => messages.get(&message_id),
         }
     }
+
+    pub fn get_content(&self, message_id: MessageId) -> Option<&MySbMessageContent> {
+        match self.get_message(message_id)? {
+            MySbMessage::Loaded(content) => Some(content),
+            MySbMessage::Missing { id: _ } => None,
+        }
+    }
     pub fn get_messages(&self, from_id: MessageId, to_id: MessageId) -> Option<Vec<&MySbMessage>> {
         match &self.messages {
             SubPageMessages::AllAreMissing => None,

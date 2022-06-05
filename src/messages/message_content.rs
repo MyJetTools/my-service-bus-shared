@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::MessageId;
+use crate::{protobuf_models::MessageProtobufModel, MessageId};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 #[derive(Debug, Clone)]
@@ -34,4 +34,31 @@ impl MySbMessageContent {
             headers: self.headers.clone(),
         }
     }
+}
+
+impl From<MessageProtobufModel> for MySbMessageContent {
+    fn from(src: MessageProtobufModel) -> Self {
+        Self {
+            id: src.message_id,
+            time: DateTimeAsMicroseconds::new(src.created),
+            content: src.data,
+            headers: convert_headers(src.headers),
+        }
+    }
+}
+
+fn convert_headers(
+    src: Vec<crate::protobuf_models::MessageMetaDataProtobufModel>,
+) -> Option<HashMap<String, String>> {
+    if src.len() == 0 {
+        return None;
+    }
+
+    let mut result = HashMap::new();
+
+    for header in src {
+        result.insert(header.key, header.value);
+    }
+
+    Some(result)
 }

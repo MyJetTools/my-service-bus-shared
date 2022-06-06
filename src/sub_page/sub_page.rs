@@ -96,7 +96,10 @@ impl SubPage {
                 break;
             }
 
-            messages_to_gc = Some(Vec::new());
+            if messages_to_gc.is_none() {
+                messages_to_gc = Some(Vec::new());
+            }
+
             messages_to_gc.as_mut().unwrap().push(*msg_id);
         }
 

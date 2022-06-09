@@ -6,6 +6,11 @@ use crate::{
 use super::{iterator::QueueWithIntervalsIterator, queue_index_range::QueueIndexRangeCompare};
 use crate::page_id::SplittedByPageIdIterator;
 
+pub enum QueueWithIntervalsError {
+    MessagesNotFound,
+    QueueIsEmpty,
+}
+
 #[derive(Debug, Clone)]
 pub struct QueueWithIntervals {
     pub intervals: Vec<QueueIndexRange>,
@@ -48,10 +53,9 @@ impl QueueWithIntervals {
         }
     }
 
-    pub fn remove(&mut self, id: MessageId) -> bool {
+    pub fn remove(&mut self, id: MessageId) -> Result<(), QueueWithIntervalsError> {
         if self.intervals.len() == 0 {
-            println!("We are trying to remove message {} but queue is empty", id);
-            return false;
+            return Err(QueueWithIntervalsError::QueueIsEmpty);
         }
 
         for index in 0..self.intervals.len() {
@@ -70,11 +74,11 @@ impl QueueWithIntervals {
                     }
                 }
 
-                return true;
+                return Ok(());
             }
         }
 
-        return false;
+        return Err(QueueWithIntervalsError::MessagesNotFound);
     }
 
     pub fn enqueue(&mut self, message_id: MessageId) {

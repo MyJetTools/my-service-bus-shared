@@ -6,6 +6,7 @@ use crate::{
 use super::{iterator::QueueWithIntervalsIterator, queue_index_range::QueueIndexRangeCompare};
 use crate::page_id::SplittedByPageIdIterator;
 
+#[derive(Debug, Clone)]
 pub enum QueueWithIntervalsError {
     MessagesNotFound,
     QueueIsEmpty,
@@ -429,7 +430,7 @@ mod tests {
         queue.enqueue(203);
         queue.enqueue(204);
 
-        queue.remove(200);
+        queue.remove(200).unwrap();
 
         assert_eq!(1, queue.intervals.len());
 
@@ -447,7 +448,7 @@ mod tests {
         queue.enqueue(203);
         queue.enqueue(204);
 
-        queue.remove(204);
+        queue.remove(204).unwrap();
 
         println!("Len: {}", queue.intervals.len());
 
@@ -467,7 +468,7 @@ mod tests {
         queue.enqueue(203);
         queue.enqueue(204);
 
-        queue.remove(202);
+        queue.remove(202).unwrap();
 
         println!("Len: {}", queue.intervals.len());
 
@@ -492,10 +493,10 @@ mod tests {
         queue.enqueue(205);
         queue.enqueue(206);
 
-        queue.remove(202);
+        queue.remove(202).unwrap();
         assert_eq!(2, queue.intervals.len());
 
-        queue.remove(205);
+        queue.remove(205).unwrap();
         assert_eq!(3, queue.intervals.len());
 
         assert_eq!(200, queue.intervals[0].from_id);
@@ -507,8 +508,8 @@ mod tests {
         assert_eq!(206, queue.intervals[2].from_id);
         assert_eq!(206, queue.intervals[2].to_id);
 
-        queue.remove(203);
-        queue.remove(204);
+        queue.remove(203).unwrap();
+        queue.remove(204).unwrap();
         assert_eq!(2, queue.intervals.len());
 
         assert_eq!(200, queue.intervals[0].from_id);
@@ -530,10 +531,10 @@ mod tests {
         queue.enqueue(205);
         queue.enqueue(206);
 
-        queue.remove(202);
+        queue.remove(202).unwrap();
         assert_eq!(2, queue.intervals.len());
 
-        queue.remove(205);
+        queue.remove(205).unwrap();
         assert_eq!(3, queue.intervals.len());
 
         assert_eq!(200, queue.intervals[0].from_id);
@@ -545,7 +546,7 @@ mod tests {
         assert_eq!(206, queue.intervals[2].from_id);
         assert_eq!(206, queue.intervals[2].to_id);
 
-        queue.remove(206);
+        queue.remove(206).unwrap();
         assert_eq!(2, queue.intervals.len());
 
         assert_eq!(200, queue.intervals[0].from_id);

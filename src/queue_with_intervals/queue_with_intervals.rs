@@ -50,7 +50,7 @@ impl QueueWithIntervals {
 
     pub fn remove(&mut self, id: MessageId) -> bool {
         if self.intervals.len() == 0 {
-            println!("We are trying to remove {} but queue is empty #1", id);
+            println!("We are trying to remove message {} but queue is empty", id);
             return false;
         }
 

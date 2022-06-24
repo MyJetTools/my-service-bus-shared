@@ -311,7 +311,7 @@ dependencies = [
 
 [[package]]
 name = "my-service-bus-shared"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "prost",
@@ -498,7 +498,7 @@ dependencies = [
 [[package]]
 name = "rust-extensions"
 version = "0.1.0"
-source = "git+https://github.com/MyJetTools/rust-extensions.git?branch=main#9364f07df586aa92462ee58a28ad8cfa2bf3ed0b"
+source = "git+https://github.com/MyJetTools/rust-extensions.git?branch=0.1.0#f17192f7cd62335c1ea7b93de6cf8b93b75da262"
 dependencies = [
  "async-trait",
  "chrono",

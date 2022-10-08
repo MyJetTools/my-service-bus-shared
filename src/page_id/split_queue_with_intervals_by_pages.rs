@@ -1,7 +1,6 @@
-use crate::queue_with_intervals::QueueWithIntervals;
+use my_service_bus_abstractions::queue_with_intervals::{QueueIndexRange, QueueWithIntervals};
 
 use super::{get_last_message_id_of_the_page, get_page_id, PageId};
-use crate::queue_with_intervals::QueueIndexRange;
 
 pub struct SplittedByPageId {
     pub page_id: PageId,
@@ -81,7 +80,7 @@ mod tests {
     fn test_both_on_the_same_page() {
         let src = QueueWithIntervals::from_single_interval(100, 200);
 
-        let result: Vec<SplittedByPageId> = src.split_by_page_id().collect();
+        let result: Vec<SplittedByPageId> = SplittedByPageIdIterator::new(&src).collect();
 
         assert_eq!(1, result.len());
         assert_eq!(0, result[0].page_id);
@@ -94,7 +93,7 @@ mod tests {
     fn test_we_are_jumping_behind_the_page() {
         let src = QueueWithIntervals::from_single_interval(99998, 100002);
 
-        let result: Vec<SplittedByPageId> = src.split_by_page_id().collect();
+        let result: Vec<SplittedByPageId> = SplittedByPageIdIterator::new(&src).collect();
 
         assert_eq!(2, result.len());
         assert_eq!(0, result[0].page_id);
@@ -121,7 +120,7 @@ mod tests {
             to_id: 200_020,
         });
 
-        let result: Vec<SplittedByPageId> = src.split_by_page_id().collect();
+        let result: Vec<SplittedByPageId> = SplittedByPageIdIterator::new(&src).collect();
 
         assert_eq!(3, result.len());
         assert_eq!(0, result[0].page_id);

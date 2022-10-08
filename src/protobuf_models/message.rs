@@ -1,6 +1,6 @@
 use prost::{DecodeError, EncodeError};
 
-use crate::MySbMessageContent;
+use crate::messages::MySbMessageContent;
 
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MessageProtobufModel {

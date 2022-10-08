@@ -1,4 +1,4 @@
-use crate::MessageId;
+use my_service_bus_abstractions::MessageId;
 
 use super::{SubPageId, SUB_PAGE_MESSAGES_AMOUNT};
 
@@ -35,7 +35,9 @@ impl Iterator for SubPageMessagesIterator {
 #[cfg(test)]
 mod test {
 
-    use crate::{sub_page::*, MessageId};
+    use my_service_bus_abstractions::MessageId;
+
+    use crate::sub_page::*;
 
     #[test]
     pub fn test_iterator() {

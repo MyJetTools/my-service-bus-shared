@@ -1,9 +1,8 @@
 use std::{io::Write, num::ParseIntError};
 
+use my_service_bus_abstractions::MessageId;
 use prost::DecodeError;
 use zip::result::ZipError;
-
-use crate::MessageId;
 
 use super::VecWriter;
 

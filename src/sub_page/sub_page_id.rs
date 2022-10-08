@@ -1,4 +1,6 @@
-use crate::{page_id::PageId, MessageId};
+use my_service_bus_abstractions::MessageId;
+
+use crate::page_id::PageId;
 
 use super::SubPageMessagesIterator;
 

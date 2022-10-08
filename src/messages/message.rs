@@ -1,4 +1,6 @@
-use crate::{MessageId, MySbMessageContent};
+use my_service_bus_abstractions::MessageId;
+
+use super::MySbMessageContent;
 
 #[derive(Debug, Clone)]
 pub enum MySbMessage {

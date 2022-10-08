@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
 
+use my_service_bus_abstractions::MessageId;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
 
-use crate::{MessageId, MySbMessageContent};
+use crate::messages::MySbMessageContent;
 
 use super::{SizeAndAmount, SubPageId};
 

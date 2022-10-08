@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::{protobuf_models::MessageProtobufModel, MessageId};
+use crate::protobuf_models::MessageProtobufModel;
+use my_service_bus_abstractions::MessageId;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 #[derive(Debug, Clone)]

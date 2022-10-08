@@ -1,11 +1,9 @@
 use std::io::{Cursor, Read};
 
+use my_service_bus_abstractions::MessageId;
 use zip::result::ZipError;
 
-use crate::{
-    protobuf_models::{MessageProtobufModel, MessagesProtobufModel},
-    MessageId,
-};
+use crate::protobuf_models::{MessageProtobufModel, MessagesProtobufModel};
 
 use super::CompressedPageReaderError;
 

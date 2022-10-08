@@ -1,4 +1,4 @@
-use crate::messages::MessageId;
+use my_service_bus_abstractions::MessageId;
 
 pub const MESSAGES_IN_PAGE: i64 = 100_000;
 

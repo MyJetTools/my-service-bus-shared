@@ -8,7 +8,7 @@ pub mod protobuf_models;
 pub mod settings;
 pub mod sub_page;
 
-pub use messages::MySbMessage;
+pub use messages::*;
 
 pub mod debug;
 pub mod validators;

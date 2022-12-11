@@ -5,7 +5,7 @@ use crate::page_id::PageId;
 pub const SUB_PAGE_MESSAGES_AMOUNT: i64 = 1000;
 pub const SUB_PAGES_PER_PAGE: i64 = 100;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SubPageId(i64);
 
 impl SubPageId {

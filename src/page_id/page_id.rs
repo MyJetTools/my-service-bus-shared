@@ -2,7 +2,7 @@ use my_service_bus_abstractions::MessageId;
 
 pub const MESSAGES_IN_PAGE: i64 = 100_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct PageId(i64);
 
 impl PageId {

@@ -1,6 +1,6 @@
 use my_service_bus_abstractions::queue_with_intervals::{QueueIndexRange, QueueWithIntervals};
 
-use super::{get_last_message_id_of_the_page, get_page_id, PageId};
+use super::PageId;
 
 pub struct SplittedByPageId {
     pub page_id: PageId,
@@ -32,23 +32,25 @@ impl Iterator for SplittedByPageIdIterator {
         }
 
         let mut ids = QueueWithIntervals::new();
-        let mut page_id = -1;
+        let mut page_id = None;
 
         while let Some(el) = self.intervals.get_mut(self.index) {
-            if page_id < 0 {
-                page_id = get_page_id(el.from_id);
+            if page_id.is_none() {
+                page_id = Some(PageId::from_message_id(el.from_id));
             }
 
-            let from_page_id = get_page_id(el.from_id);
+            let page_id = page_id.unwrap();
 
-            if from_page_id > page_id {
+            let from_page_id = PageId::from_message_id(el.from_id);
+
+            if from_page_id.get_value() > page_id.get_value() {
                 return Some(SplittedByPageId { page_id, ids });
             }
 
-            let to_page_id = get_page_id(el.to_id);
+            let to_page_id = PageId::from_message_id(el.to_id);
 
-            if to_page_id > page_id {
-                let to_id = get_last_message_id_of_the_page(page_id);
+            if to_page_id.get_value() > page_id.get_value() {
+                let to_id = page_id.get_last_message_id();
 
                 ids.intervals.push(QueueIndexRange {
                     from_id: el.from_id,
@@ -68,7 +70,10 @@ impl Iterator for SplittedByPageIdIterator {
             self.index += 1;
         }
 
-        return Some(SplittedByPageId { page_id, ids });
+        return Some(SplittedByPageId {
+            page_id: page_id.unwrap(),
+            ids,
+        });
     }
 }
 
@@ -83,7 +88,7 @@ mod tests {
         let result: Vec<SplittedByPageId> = SplittedByPageIdIterator::new(&src).collect();
 
         assert_eq!(1, result.len());
-        assert_eq!(0, result[0].page_id);
+        assert_eq!(0, result[0].page_id.get_value());
 
         assert_eq!(100, result[0].ids.intervals[0].from_id);
         assert_eq!(200, result[0].ids.intervals[0].to_id);
@@ -96,8 +101,8 @@ mod tests {
         let result: Vec<SplittedByPageId> = SplittedByPageIdIterator::new(&src).collect();
 
         assert_eq!(2, result.len());
-        assert_eq!(0, result[0].page_id);
-        assert_eq!(1, result[1].page_id);
+        assert_eq!(0, result[0].page_id.get_value());
+        assert_eq!(1, result[1].page_id.get_value());
 
         assert_eq!(99998, result[0].ids.intervals[0].from_id);
         assert_eq!(99999, result[0].ids.intervals[0].to_id);
@@ -123,9 +128,9 @@ mod tests {
         let result: Vec<SplittedByPageId> = SplittedByPageIdIterator::new(&src).collect();
 
         assert_eq!(3, result.len());
-        assert_eq!(0, result[0].page_id);
-        assert_eq!(1, result[1].page_id);
-        assert_eq!(2, result[2].page_id);
+        assert_eq!(0, result[0].page_id.get_value());
+        assert_eq!(1, result[1].page_id.get_value());
+        assert_eq!(2, result[2].page_id.get_value());
 
         assert_eq!(99_998, result[0].ids.intervals[0].from_id);
         assert_eq!(99_999, result[0].ids.intervals[0].to_id);

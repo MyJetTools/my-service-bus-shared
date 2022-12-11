@@ -5,7 +5,7 @@ use crate::page_id::PageId;
 pub const SUB_PAGE_MESSAGES_AMOUNT: i64 = 1000;
 pub const SUB_PAGES_PER_PAGE: i64 = 100;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub struct SubPageId(i64);
 
 impl SubPageId {
@@ -86,5 +86,25 @@ mod test {
             SubPageId::from_page_id(page_id).get_value(),
             SubPageId::from_message_id(message_id).get_value()
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SubPageId;
+
+    #[test]
+    fn test_b_tree_map() {
+        let mut map = std::collections::BTreeMap::new();
+
+        map.insert(SubPageId::new(1), 1);
+        map.insert(SubPageId::new(2), 2);
+        map.insert(SubPageId::new(4), 4);
+        map.insert(SubPageId::new(3), 3);
+
+        assert_eq!(1, map[&SubPageId::new(1)]);
+        assert_eq!(2, map[&SubPageId::new(2)]);
+        assert_eq!(3, map[&SubPageId::new(3)]);
+        assert_eq!(4, map[&SubPageId::new(4)]);
     }
 }

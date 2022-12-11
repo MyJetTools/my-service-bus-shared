@@ -38,6 +38,12 @@ impl SubPageId {
     }
 }
 
+impl AsRef<i64> for SubPageId {
+    fn as_ref(&self) -> &i64 {
+        &self.0
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{page_id::PageId, sub_page::*};

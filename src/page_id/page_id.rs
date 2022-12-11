@@ -31,6 +31,20 @@ impl PageId {
     }
 }
 
+impl AsRef<i64> for PageId {
+    fn as_ref(&self) -> &i64 {
+        &self.0
+    }
+}
+
+impl std::ops::Sub<i64> for PageId {
+    type Output = Self;
+
+    fn sub(self, rhs: i64) -> Self::Output {
+        Self(self.0 - rhs)
+    }
+}
+
 impl std::ops::Add<i64> for PageId {
     type Output = Self;
 

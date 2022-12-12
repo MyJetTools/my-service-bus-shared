@@ -44,16 +44,14 @@ impl SubPage {
         }
     }
 
-    pub fn restored(sub_page_id: SubPageId, src: Option<Vec<MySbMessageContent>>) -> Self {
-        let mut messages = BTreeMap::new();
-
+    pub fn restore(
+        sub_page_id: SubPageId,
+        messages: BTreeMap<MessageId, MySbMessageContent>,
+    ) -> Self {
         let mut size_and_amount = SizeAndAmount::new();
 
-        if let Some(src) = src {
-            for msg in src {
-                size_and_amount.added(msg.content.len());
-                messages.insert(msg.id, msg);
-            }
+        for msg in messages.values() {
+            size_and_amount.added(msg.content.len());
         }
 
         Self {

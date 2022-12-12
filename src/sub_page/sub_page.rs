@@ -1,6 +1,6 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
-use my_service_bus_abstractions::MessageId;
+use my_service_bus_abstractions::{queue_with_intervals::QueueWithIntervals, MessageId};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::messages::MySbMessageContent;
@@ -16,7 +16,8 @@ pub enum GetMessageResult<'s> {
 pub struct SubPage {
     pub sub_page_id: SubPageId,
     pub messages: BTreeMap<MessageId, MySbMessageContent>,
-    pub gced: HashMap<MessageId, ()>,
+    pub gced: QueueWithIntervals,
+    pub to_persist: QueueWithIntervals,
     pub created: DateTimeAsMicroseconds,
     size_and_amount: SizeAndAmount,
 }
@@ -28,7 +29,8 @@ impl SubPage {
             messages: BTreeMap::new(),
             created: DateTimeAsMicroseconds::now(),
             size_and_amount: SizeAndAmount::new(),
-            gced: HashMap::new(),
+            gced: QueueWithIntervals::new(),
+            to_persist: QueueWithIntervals::new(),
         }
     }
 
@@ -49,13 +51,14 @@ impl SubPage {
             messages,
             created: DateTimeAsMicroseconds::now(),
             size_and_amount,
-            gced: HashMap::new(),
+            gced: QueueWithIntervals::new(),
+            to_persist: QueueWithIntervals::new(),
         }
     }
 
     pub fn add_message(&mut self, message: MySbMessageContent) -> Option<MySbMessageContent> {
         self.size_and_amount.added(message.content.len());
-        self.gced.remove(&message.id);
+        self.to_persist.enqueue(message.id);
 
         if let Some(old_message) = self.messages.insert(message.id, message) {
             self.size_and_amount.removed(old_message.content.len());
@@ -69,7 +72,7 @@ impl SubPage {
         if let Some(result) = self.messages.get(&msg_id) {
             return GetMessageResult::Ok(result);
         }
-        if self.gced.contains_key(&msg_id) {
+        if self.gced.has_message(msg_id) {
             return GetMessageResult::Gced(msg_id);
         } else {
             return GetMessageResult::Missing(msg_id);
@@ -85,7 +88,7 @@ impl SubPage {
     }
 
     pub fn has_gced_messages(&self) -> bool {
-        !self.gced.is_empty()
+        self.gced.len() > 0
     }
 
     fn get_first_message_id(&self) -> Option<MessageId> {
@@ -112,9 +115,13 @@ impl SubPage {
 
             if let Some(message) = self.messages.remove(&msg_id) {
                 self.size_and_amount.removed(message.content.len());
-                self.gced.insert(msg_id, ());
+                self.gced.enqueue(msg_id);
             }
         }
+    }
+
+    pub fn persisted(&mut self, message_id: MessageId) {
+        let _ = self.to_persist.remove(message_id);
     }
 }
 

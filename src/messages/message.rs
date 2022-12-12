@@ -37,4 +37,11 @@ impl MySbMessage {
             MySbMessage::Missing(_) => true,
         }
     }
+
+    pub fn unwrap_as_message(&self) -> &MySbMessageContent {
+        match self {
+            MySbMessage::Loaded(msg) => msg,
+            MySbMessage::Missing(id) => panic!("Message {} is missing", id),
+        }
+    }
 }

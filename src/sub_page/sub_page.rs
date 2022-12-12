@@ -53,13 +53,16 @@ impl SubPage {
         }
     }
 
-    pub fn add_message(&mut self, message: MySbMessageContent) {
+    pub fn add_message(&mut self, message: MySbMessageContent) -> Option<MySbMessageContent> {
         self.size_and_amount.added(message.content.len());
         self.gced.remove(&message.id);
 
         if let Some(old_message) = self.messages.insert(message.id, message) {
             self.size_and_amount.removed(old_message.content.len());
+            return Some(old_message);
         }
+
+        None
     }
 
     pub fn get_message(&self, msg_id: MessageId) -> GetMessageResult {

@@ -13,6 +13,16 @@ pub enum GetMessageResult<'s> {
     Gced(MessageId),
 }
 
+impl<'s> GetMessageResult<'s> {
+    pub fn unwrap_as_message(&self) -> &'s MySbMessageContent {
+        match self {
+            GetMessageResult::Ok(msg) => msg,
+            GetMessageResult::Missing(id) => panic!("Message {} is missing", id),
+            GetMessageResult::Gced(id) => panic!("Message {} is gced", id),
+        }
+    }
+}
+
 pub struct SubPage {
     pub sub_page_id: SubPageId,
     pub messages: BTreeMap<MessageId, MySbMessageContent>,

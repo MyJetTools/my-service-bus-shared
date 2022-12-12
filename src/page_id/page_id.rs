@@ -1,5 +1,7 @@
 use my_service_bus_abstractions::MessageId;
 
+use crate::sub_page::SubPageId;
+
 pub const MESSAGES_IN_PAGE: i64 = 100_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
@@ -28,6 +30,18 @@ impl PageId {
     pub fn iterate_messages(&self) -> std::ops::Range<i64> {
         let first_message_id = self.get_first_message_id();
         first_message_id..first_message_id + MESSAGES_IN_PAGE
+    }
+
+    pub fn iterate_sub_page_ids(&self) -> std::ops::Range<SubPageId> {
+        let message_id = self.get_first_message_id();
+        let first_sub_page_id = SubPageId::from_message_id(message_id);
+
+        std::ops::Range {
+            start: first_sub_page_id,
+            end: SubPageId::new(
+                first_sub_page_id.get_value() + crate::sub_page::SUB_PAGES_PER_PAGE,
+            ),
+        }
     }
 }
 

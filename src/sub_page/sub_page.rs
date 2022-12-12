@@ -1,16 +1,22 @@
 use std::collections::{BTreeMap, HashMap};
 
 use my_service_bus_abstractions::MessageId;
-use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::messages::MySbMessageContent;
 
 use super::{SizeAndAmount, SubPageId};
 
+pub enum GetMessageResult<'s> {
+    Ok(&'s MySbMessageContent),
+    Missing(MessageId),
+    Gced(MessageId),
+}
+
 pub struct SubPage {
     pub sub_page_id: SubPageId,
-    pub messages: BTreeMap<i64, MySbMessageContent>,
-    pub gced: HashMap<i64, ()>,
+    pub messages: BTreeMap<MessageId, MySbMessageContent>,
+    pub gced: HashMap<MessageId, ()>,
     pub created: DateTimeAsMicroseconds,
     size_and_amount: SizeAndAmount,
 }
@@ -26,8 +32,17 @@ impl SubPage {
         }
     }
 
-    pub fn restored(sub_page_id: SubPageId, messages: BTreeMap<i64, MySbMessageContent>) -> Self {
-        let size_and_amount = calculate_size_and_messages_amount(&messages);
+    pub fn restored(sub_page_id: SubPageId, src: Option<Vec<MySbMessageContent>>) -> Self {
+        let mut messages = BTreeMap::new();
+
+        let mut size_and_amount = SizeAndAmount::new();
+
+        if let Some(src) = src {
+            for msg in src {
+                size_and_amount.added(msg.content.len());
+                messages.insert(msg.id, msg);
+            }
+        }
 
         Self {
             sub_page_id,
@@ -47,34 +62,15 @@ impl SubPage {
         }
     }
 
-    pub fn add_messages(&mut self, new_messages: Vec<MySbMessageContent>) {
-        for message in new_messages {
-            self.size_and_amount.added(message.content.len());
-            self.gced.remove(&message.id);
-            if let Some(old_message) = self.messages.insert(message.id, message) {
-                self.size_and_amount.removed(old_message.content.len());
-            }
+    pub fn get_message(&self, msg_id: MessageId) -> GetMessageResult {
+        if let Some(result) = self.messages.get(&msg_id) {
+            return GetMessageResult::Ok(result);
         }
-    }
-
-    pub fn get_message(&self, message_id: MessageId) -> Option<&MySbMessageContent> {
-        self.messages.get(&message_id)
-    }
-
-    pub fn get_messages(
-        &self,
-        from_id: MessageId,
-        to_id: MessageId,
-    ) -> Option<Vec<&MySbMessageContent>> {
-        let mut result = LazyVec::new();
-
-        for message_id in from_id..=to_id {
-            if let Some(msg) = self.messages.get(&message_id) {
-                result.add(msg);
-            }
+        if self.gced.contains_key(&msg_id) {
+            return GetMessageResult::Gced(msg_id);
+        } else {
+            return GetMessageResult::Missing(msg_id);
         }
-
-        result.get_result()
     }
 
     pub fn get_size_and_amount(&self) -> &SizeAndAmount {
@@ -89,38 +85,57 @@ impl SubPage {
         !self.gced.is_empty()
     }
 
-    pub fn gc_messages(&mut self, min_message_id: MessageId) {
-        let mut messages_to_gc = None;
-
+    fn get_first_message_id(&self) -> Option<MessageId> {
         for msg_id in self.messages.keys() {
-            if *msg_id >= min_message_id {
+            return Some(*msg_id);
+        }
+
+        None
+    }
+
+    pub fn gc_messages(&mut self, min_message_id: MessageId) {
+        let first_message_id = self.get_first_message_id();
+
+        if first_message_id.is_none() {
+            return;
+        }
+
+        let first_message_id = first_message_id.unwrap();
+
+        for msg_id in first_message_id..self.sub_page_id.get_first_message_id_of_next_sub_page() {
+            if min_message_id <= msg_id {
                 break;
             }
 
-            if messages_to_gc.is_none() {
-                messages_to_gc = Some(Vec::new());
-            }
-
-            messages_to_gc.as_mut().unwrap().push(*msg_id);
-        }
-
-        if let Some(messages_to_gc) = messages_to_gc {
-            for message_to_gc in messages_to_gc {
-                if let Some(message) = self.messages.remove(&message_to_gc) {
-                    self.size_and_amount.removed(message.content.len());
-                    self.gced.insert(message_to_gc, ());
-                }
+            if let Some(message) = self.messages.remove(&msg_id) {
+                self.size_and_amount.removed(message.content.len());
+                self.gced.insert(msg_id, ());
             }
         }
     }
 }
 
-fn calculate_size_and_messages_amount(msgs: &BTreeMap<i64, MySbMessageContent>) -> SizeAndAmount {
-    let mut result = SizeAndAmount::new();
+#[cfg(test)]
+mod tests {
 
-    for msg in msgs.values() {
-        result.added(msg.content.len());
+    use super::*;
+    use crate::messages::MySbMessageContent;
+    #[test]
+    fn test_gc_messages() {
+        let mut sub_page = SubPage::new(SubPageId::new(0));
+
+        sub_page.add_message(MySbMessageContent {
+            id: 0,
+            content: vec![],
+            time: DateTimeAsMicroseconds::now(),
+            headers: None,
+        });
+
+        sub_page.add_message(MySbMessageContent {
+            id: 1,
+            content: vec![],
+            time: DateTimeAsMicroseconds::now(),
+            headers: None,
+        });
     }
-
-    result
 }

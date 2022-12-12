@@ -19,8 +19,13 @@ impl SizeAndAmount {
         self.amount -= 1;
     }
 
-    pub fn append(&mut self, other: &SizeAndAmount) {
+    pub fn added_page(&mut self, other: &SizeAndAmount) {
         self.size += other.size;
         self.amount += other.amount;
+    }
+
+    pub fn removed_page(&mut self, other: &SizeAndAmount) {
+        self.size -= other.size;
+        self.amount -= other.amount;
     }
 }

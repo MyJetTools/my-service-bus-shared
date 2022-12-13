@@ -29,6 +29,7 @@ pub struct SubPage {
     pub to_persist: QueueWithIntervals,
     pub created: DateTimeAsMicroseconds,
     pub gced: QueueWithIntervals,
+    pub loaded: QueueWithIntervals,
     size_and_amount: SizeAndAmount,
 }
 
@@ -41,6 +42,7 @@ impl SubPage {
             size_and_amount: SizeAndAmount::new(),
             to_persist: QueueWithIntervals::new(),
             gced: QueueWithIntervals::new(),
+            loaded: QueueWithIntervals::new(),
         }
     }
 
@@ -49,9 +51,11 @@ impl SubPage {
         messages: BTreeMap<MessageId, MySbMessageContent>,
     ) -> Self {
         let mut size_and_amount = SizeAndAmount::new();
+        let mut loaded = QueueWithIntervals::new();
 
         for msg in messages.values() {
             size_and_amount.added(msg.content.len());
+            loaded.enqueue(msg.id);
         }
 
         Self {
@@ -61,12 +65,14 @@ impl SubPage {
             size_and_amount,
             to_persist: QueueWithIntervals::new(),
             gced: QueueWithIntervals::new(),
+            loaded,
         }
     }
 
     pub fn add_message(&mut self, message: MySbMessageContent) -> Option<MySbMessageContent> {
         self.size_and_amount.added(message.content.len());
         self.to_persist.enqueue(message.id);
+        self.loaded.enqueue(message.id);
 
         if let Some(old_message) = self.messages.insert(message.id, message) {
             self.size_and_amount.removed(old_message.content.len());

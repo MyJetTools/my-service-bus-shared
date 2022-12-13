@@ -7,11 +7,18 @@ use crate::messages::MySbMessageContent;
 
 use super::{SizeAndAmount, SubPageId};
 
+pub enum GetMessageResult<'s> {
+    Message(&'s MySbMessageContent),
+    Missing,
+    Gced,
+}
+
 pub struct SubPage {
     pub sub_page_id: SubPageId,
     pub messages: BTreeMap<MessageId, MySbMessageContent>,
     pub to_persist: QueueWithIntervals,
     pub created: DateTimeAsMicroseconds,
+    pub gced: QueueWithIntervals,
     size_and_amount: SizeAndAmount,
 }
 
@@ -23,6 +30,7 @@ impl SubPage {
             created: DateTimeAsMicroseconds::now(),
             size_and_amount: SizeAndAmount::new(),
             to_persist: QueueWithIntervals::new(),
+            gced: QueueWithIntervals::new(),
         }
     }
 
@@ -42,6 +50,7 @@ impl SubPage {
             created: DateTimeAsMicroseconds::now(),
             size_and_amount,
             to_persist: QueueWithIntervals::new(),
+            gced: QueueWithIntervals::new(),
         }
     }
 
@@ -57,8 +66,16 @@ impl SubPage {
         None
     }
 
-    pub fn get_message(&self, msg_id: MessageId) -> Option<&MySbMessageContent> {
-        self.messages.get(&msg_id)
+    pub fn get_message(&self, msg_id: MessageId) -> GetMessageResult {
+        if let Some(msg) = self.messages.get(&msg_id) {
+            return GetMessageResult::Message(msg);
+        } else {
+            if self.gced.has_message(msg_id) {
+                return GetMessageResult::Gced;
+            }
+
+            return GetMessageResult::Missing;
+        }
     }
 
     pub fn get_size_and_amount(&self) -> &SizeAndAmount {
@@ -91,6 +108,7 @@ impl SubPage {
                 break;
             }
 
+            self.gced.enqueue(msg_id);
             if let Some(message) = self.messages.remove(&msg_id) {
                 self.size_and_amount.removed(message.content.len());
             }
@@ -124,5 +142,7 @@ mod tests {
             time: DateTimeAsMicroseconds::now(),
             headers: None,
         });
+
+        sub_page.gc_messages(1);
     }
 }

@@ -45,6 +45,18 @@ impl PageId {
     }
 }
 
+impl Into<PageId> for MessageId {
+    fn into(self) -> PageId {
+        PageId::from_message_id(self)
+    }
+}
+
+impl Into<PageId> for SubPageId {
+    fn into(self) -> PageId {
+        PageId::from_message_id(self.get_first_message_id())
+    }
+}
+
 impl AsRef<i64> for PageId {
     fn as_ref(&self) -> &i64 {
         &self.0

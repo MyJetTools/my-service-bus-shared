@@ -10,7 +10,7 @@ use super::{SizeAndAmount, SubPageId};
 pub enum GetMessageResult<'s> {
     Message(&'s MySbMessageContent),
     Missing,
-    Gced,
+    GarbageCollected,
 }
 
 impl<'s> GetMessageResult<'s> {
@@ -18,7 +18,7 @@ impl<'s> GetMessageResult<'s> {
         match self {
             GetMessageResult::Message(msg) => msg,
             GetMessageResult::Missing => panic!("Message is missing"),
-            GetMessageResult::Gced => panic!("Message is gced"),
+            GetMessageResult::GarbageCollected => panic!("Message is garbage collected"),
         }
     }
 }
@@ -28,7 +28,7 @@ pub struct SubPage {
     pub messages: BTreeMap<MessageId, MySbMessageContent>,
     pub to_persist: QueueWithIntervals,
     pub created: DateTimeAsMicroseconds,
-    pub gced: QueueWithIntervals,
+    pub garbage_collected: QueueWithIntervals,
     pub loaded: QueueWithIntervals,
     size_and_amount: SizeAndAmount,
 }
@@ -41,7 +41,7 @@ impl SubPage {
             created: DateTimeAsMicroseconds::now(),
             size_and_amount: SizeAndAmount::new(),
             to_persist: QueueWithIntervals::new(),
-            gced: QueueWithIntervals::new(),
+            garbage_collected: QueueWithIntervals::new(),
             loaded: QueueWithIntervals::new(),
         }
     }
@@ -64,7 +64,7 @@ impl SubPage {
             created: DateTimeAsMicroseconds::now(),
             size_and_amount,
             to_persist: QueueWithIntervals::new(),
-            gced: QueueWithIntervals::new(),
+            garbage_collected: QueueWithIntervals::new(),
             loaded,
         }
     }
@@ -86,8 +86,8 @@ impl SubPage {
         if let Some(msg) = self.messages.get(&msg_id) {
             return GetMessageResult::Message(msg);
         } else {
-            if self.gced.has_message(msg_id) {
-                return GetMessageResult::Gced;
+            if self.garbage_collected.has_message(msg_id) {
+                return GetMessageResult::GarbageCollected;
             }
 
             return GetMessageResult::Missing;
@@ -124,7 +124,7 @@ impl SubPage {
                 break;
             }
 
-            self.gced.enqueue(msg_id);
+            self.garbage_collected.enqueue(msg_id);
             if let Some(message) = self.messages.remove(&msg_id) {
                 self.size_and_amount.removed(message.content.len());
             }

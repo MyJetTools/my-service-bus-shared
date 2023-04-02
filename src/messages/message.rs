@@ -24,7 +24,7 @@ impl MySbMessage {
         }
     }
 
-    pub fn is_gced(&self) -> bool {
+    pub fn is_garbage_collected(&self) -> bool {
         match self {
             MySbMessage::Loaded(_) => false,
             MySbMessage::Missing(_) => false,

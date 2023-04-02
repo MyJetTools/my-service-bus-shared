@@ -36,28 +36,28 @@ impl Iterator for SplittedByPageIdIterator {
 
         while let Some(el) = self.intervals.get_mut(self.index) {
             if page_id.is_none() {
-                page_id = Some(PageId::from_message_id(el.from_id));
+                page_id = Some(PageId::from_message_id(el.from_id.into()));
             }
 
             let page_id = page_id.unwrap();
 
-            let from_page_id = PageId::from_message_id(el.from_id);
+            let from_page_id = PageId::from_message_id(el.from_id.into());
 
             if from_page_id.get_value() > page_id.get_value() {
                 return Some(SplittedByPageId { page_id, ids });
             }
 
-            let to_page_id = PageId::from_message_id(el.to_id);
+            let to_page_id = PageId::from_message_id(el.to_id.into());
 
             if to_page_id.get_value() > page_id.get_value() {
                 let to_id = page_id.get_last_message_id();
 
                 ids.intervals.push(QueueIndexRange {
                     from_id: el.from_id,
-                    to_id,
+                    to_id: to_id.get_value(),
                 });
 
-                el.from_id = to_id + 1;
+                el.from_id = to_id.get_value() + 1;
 
                 return Some(SplittedByPageId { page_id, ids });
             }

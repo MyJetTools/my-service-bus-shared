@@ -83,7 +83,7 @@ impl CompressedPageReader {
         }
         self.file_index += 1;
 
-        Ok(Some((message_id, result_buffer)))
+        Ok(Some((message_id.into(), result_buffer)))
     }
 
     pub fn decompress_as_single_file(&mut self) -> Result<Vec<u8>, CompressedPageReaderError> {

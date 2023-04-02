@@ -25,7 +25,7 @@ impl<'s> GetMessageResult<'s> {
 
 pub struct SubPage {
     pub sub_page_id: SubPageId,
-    pub messages: BTreeMap<MessageId, MySbMessageContent>,
+    pub messages: BTreeMap<i64, MySbMessageContent>,
     pub to_persist: QueueWithIntervals,
     pub created: DateTimeAsMicroseconds,
     pub garbage_collected: QueueWithIntervals,
@@ -46,16 +46,13 @@ impl SubPage {
         }
     }
 
-    pub fn restore(
-        sub_page_id: SubPageId,
-        messages: BTreeMap<MessageId, MySbMessageContent>,
-    ) -> Self {
+    pub fn restore(sub_page_id: SubPageId, messages: BTreeMap<i64, MySbMessageContent>) -> Self {
         let mut size_and_amount = SizeAndAmount::new();
         let mut loaded = QueueWithIntervals::new();
 
         for msg in messages.values() {
             size_and_amount.added(msg.content.len());
-            loaded.enqueue(msg.id);
+            loaded.enqueue(msg.id.get_value());
         }
 
         Self {
@@ -71,10 +68,10 @@ impl SubPage {
 
     pub fn add_message(&mut self, message: MySbMessageContent) -> Option<MySbMessageContent> {
         self.size_and_amount.added(message.content.len());
-        self.to_persist.enqueue(message.id);
-        self.loaded.enqueue(message.id);
+        self.to_persist.enqueue(message.id.get_value());
+        self.loaded.enqueue(message.id.get_value());
 
-        if let Some(old_message) = self.messages.insert(message.id, message) {
+        if let Some(old_message) = self.messages.insert(message.id.get_value(), message) {
             self.size_and_amount.removed(old_message.content.len());
             return Some(old_message);
         }
@@ -83,10 +80,10 @@ impl SubPage {
     }
 
     pub fn get_message(&self, msg_id: MessageId) -> GetMessageResult {
-        if let Some(msg) = self.messages.get(&msg_id) {
+        if let Some(msg) = self.messages.get(msg_id.as_ref()) {
             return GetMessageResult::Message(msg);
         } else {
-            if self.garbage_collected.has_message(msg_id) {
+            if self.garbage_collected.has_message(msg_id.get_value()) {
                 return GetMessageResult::GarbageCollected;
             }
 
@@ -104,7 +101,7 @@ impl SubPage {
 
     fn get_first_message_id(&self) -> Option<MessageId> {
         for msg_id in self.messages.keys() {
-            return Some(*msg_id);
+            return Some(MessageId::new(*msg_id));
         }
 
         None
@@ -119,8 +116,13 @@ impl SubPage {
 
         let first_message_id = first_message_id.unwrap();
 
-        for msg_id in first_message_id..self.sub_page_id.get_first_message_id_of_next_sub_page() {
-            if min_message_id <= msg_id {
+        for msg_id in first_message_id.get_value()
+            ..self
+                .sub_page_id
+                .get_first_message_id_of_next_sub_page()
+                .get_value()
+        {
+            if min_message_id.get_value() <= msg_id {
                 break;
             }
 
@@ -132,7 +134,7 @@ impl SubPage {
     }
 
     pub fn persisted(&mut self, message_id: MessageId) {
-        let _ = self.to_persist.remove(message_id);
+        let _ = self.to_persist.remove(message_id.get_value());
     }
 }
 
@@ -146,19 +148,19 @@ mod tests {
         let mut sub_page = SubPage::new(SubPageId::new(0));
 
         sub_page.add_message(MySbMessageContent {
-            id: 0,
+            id: 0.into(),
             content: vec![],
             time: DateTimeAsMicroseconds::now(),
             headers: None,
         });
 
         sub_page.add_message(MySbMessageContent {
-            id: 1,
+            id: 1.into(),
             content: vec![],
             time: DateTimeAsMicroseconds::now(),
             headers: None,
         });
 
-        sub_page.gc_messages(1);
+        sub_page.gc_messages(1.into());
     }
 }

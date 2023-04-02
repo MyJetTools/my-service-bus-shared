@@ -51,7 +51,7 @@ pub struct MessageMetaDataProtobufModel {
 impl From<&MySbMessageContent> for MessageProtobufModel {
     fn from(src: &MySbMessageContent) -> Self {
         Self {
-            message_id: src.id,
+            message_id: src.id.get_value(),
             created: src.time.unix_microseconds,
             data: src.content.clone(),
             headers: convert_headers(src),

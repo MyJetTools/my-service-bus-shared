@@ -23,7 +23,7 @@ impl CompressedPageBuilder {
     }
 
     pub fn add_message(&mut self, msg_id: MessageId, payload: &[u8]) -> Result<(), ZipError> {
-        let file_name = format!("{}", msg_id);
+        let file_name = format!("{}", msg_id.get_value());
 
         self.zip_writer.start_file(file_name, self.options)?;
 
@@ -81,10 +81,10 @@ mod tests {
         let mut builder = CompressedPageBuilder::new();
 
         builder
-            .add_message(1, vec![0u8, 1u8, 2u8].as_slice())
+            .add_message(1.into(), vec![0u8, 1u8, 2u8].as_slice())
             .unwrap();
         builder
-            .add_message(2, vec![3u8, 4u8, 5u8, 6u8].as_slice())
+            .add_message(2.into(), vec![3u8, 4u8, 5u8, 6u8].as_slice())
             .unwrap();
 
         let compressed = builder.get_payload().unwrap();
@@ -95,11 +95,11 @@ mod tests {
 
         let (msg_id, buf) = reader.get_next_message().unwrap().unwrap();
 
-        assert_eq!(1, msg_id);
+        assert_eq!(1, msg_id.get_value());
         assert_eq!(3, buf.len());
         let (msg_id, buf) = reader.get_next_message().unwrap().unwrap();
 
-        assert_eq!(2, msg_id);
+        assert_eq!(2, msg_id.get_value());
         assert_eq!(4, buf.len());
         let result = reader.get_next_message().unwrap();
 

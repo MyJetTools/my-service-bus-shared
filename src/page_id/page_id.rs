@@ -2,7 +2,7 @@ use my_service_bus_abstractions::MessageId;
 
 use crate::sub_page::SubPageId;
 
-use super::SubPagesIterator;
+use super::{PageIdIterator, SubPagesIterator};
 
 pub const MESSAGES_IN_PAGE: i64 = 100_000;
 
@@ -14,24 +14,26 @@ impl PageId {
         Self(value)
     }
     pub fn from_message_id(message_id: MessageId) -> Self {
-        Self(message_id / MESSAGES_IN_PAGE)
+        let result = message_id.get_value() / MESSAGES_IN_PAGE;
+        Self(result.into())
     }
 
     pub fn get_first_message_id(&self) -> MessageId {
-        self.0 * MESSAGES_IN_PAGE
+        let result = self.0 * MESSAGES_IN_PAGE;
+        result.into()
     }
 
     pub fn get_last_message_id(&self) -> MessageId {
-        (self.0 + 1) * MESSAGES_IN_PAGE - 1
+        let result = (self.0 + 1) * MESSAGES_IN_PAGE - 1;
+        result.into()
     }
 
     pub fn get_value(&self) -> i64 {
         self.0
     }
 
-    pub fn iterate_messages(&self) -> std::ops::Range<i64> {
-        let first_message_id = self.get_first_message_id();
-        first_message_id..first_message_id + MESSAGES_IN_PAGE
+    pub fn iterate_messages(&self) -> PageIdIterator {
+        return PageIdIterator::new(*self);
     }
 
     pub fn iterate_sub_page_ids(&self) -> SubPagesIterator {
@@ -85,10 +87,10 @@ mod tests {
 
     #[test]
     fn test_last_message_id_of_the_page() {
-        assert_eq!(099_999, PageId(0).get_last_message_id());
+        assert_eq!(099_999, PageId(0).get_last_message_id().get_value());
 
-        assert_eq!(199_999, PageId(1).get_last_message_id());
+        assert_eq!(199_999, PageId(1).get_last_message_id().get_value());
 
-        assert_eq!(299_999, PageId(2).get_last_message_id());
+        assert_eq!(299_999, PageId(2).get_last_message_id().get_value());
     }
 }

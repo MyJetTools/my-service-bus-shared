@@ -60,8 +60,25 @@ pub struct QueueSnapshotProtobufModel {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueueRangeProtobufModel {
     #[prost(int64, tag = "1")]
-    pub from_id: i64,
+    from_id: i64,
 
     #[prost(int64, tag = "2")]
-    pub to_id: i64,
+    to_id: i64,
+}
+
+impl QueueRangeProtobufModel {
+    pub fn new(from_id: MessageId, to_id: MessageId) -> Self {
+        Self {
+            from_id: from_id.into(),
+            to_id: to_id.into(),
+        }
+    }
+
+    pub fn get_from_id(&self) -> MessageId {
+        self.from_id.into()
+    }
+
+    pub fn get_to_id(&self) -> MessageId {
+        self.to_id.into()
+    }
 }

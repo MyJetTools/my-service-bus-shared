@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use my_service_bus_abstractions::MessageId;
 
 use crate::sub_page::SubPageId;
@@ -78,6 +80,12 @@ impl std::ops::Add<i64> for PageId {
 
     fn add(self, rhs: i64) -> Self::Output {
         Self(self.0 + rhs)
+    }
+}
+
+impl Display for PageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 

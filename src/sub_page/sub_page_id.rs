@@ -45,6 +45,12 @@ impl SubPageId {
     }
 }
 
+impl std::fmt::Display for SubPageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 impl AsRef<i64> for SubPageId {
     fn as_ref(&self) -> &i64 {
         &self.0

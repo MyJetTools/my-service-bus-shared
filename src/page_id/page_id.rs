@@ -87,6 +87,12 @@ impl Into<i64> for PageId {
     }
 }
 
+impl<'s> Into<i64> for &'s PageId {
+    fn into(self) -> i64 {
+        self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

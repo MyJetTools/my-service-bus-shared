@@ -46,6 +46,18 @@ impl AsRef<i64> for SubPageId {
     }
 }
 
+impl Into<SubPageId> for MessageId {
+    fn into(self) -> SubPageId {
+        SubPageId::from_message_id(self)
+    }
+}
+
+impl Into<SubPageId> for PageId {
+    fn into(self) -> SubPageId {
+        SubPageId::from_page_id(self)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{page_id::PageId, sub_page::*};

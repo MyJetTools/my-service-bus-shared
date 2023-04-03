@@ -81,6 +81,12 @@ impl std::ops::Add<i64> for PageId {
     }
 }
 
+impl Into<i64> for PageId {
+    fn into(self) -> i64 {
+        self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

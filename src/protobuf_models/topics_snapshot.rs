@@ -1,3 +1,5 @@
+use my_service_bus_abstractions::MessageId;
+
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TopicsSnapshotProtobufModel {
     #[prost(message, repeated, tag = "1")]
@@ -13,10 +15,10 @@ impl TopicsSnapshotProtobufModel {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TopicSnapshotProtobufModel {
     #[prost(string, tag = "1")]
-    pub topic_id: ::prost::alloc::string::String,
+    pub topic_id: String,
 
     #[prost(int64, tag = "2")]
-    pub message_id: i64,
+    message_id: i64,
 
     #[prost(int32, tag = "3")]
     pub not_used: i32,
@@ -24,6 +26,25 @@ pub struct TopicSnapshotProtobufModel {
     #[prost(message, repeated, tag = "4")]
     pub queues: Vec<QueueSnapshotProtobufModel>,
 }
+
+impl TopicSnapshotProtobufModel {
+    pub fn new(
+        topic_id: String,
+        message_id: MessageId,
+        queues: Vec<QueueSnapshotProtobufModel>,
+    ) -> Self {
+        Self {
+            topic_id,
+            message_id: message_id.get_value(),
+            not_used: 0,
+            queues,
+        }
+    }
+    pub fn get_message_id(&self) -> MessageId {
+        self.message_id.into()
+    }
+}
+
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueueSnapshotProtobufModel {
     #[prost(string, tag = "1")]

@@ -40,8 +40,8 @@ impl MySbMessageContent {
 impl From<MessageProtobufModel> for MySbMessageContent {
     fn from(src: MessageProtobufModel) -> Self {
         Self {
-            id: src.message_id.into(),
-            time: DateTimeAsMicroseconds::new(src.created),
+            id: src.get_message_id(),
+            time: src.get_created(),
             content: src.data,
             headers: convert_headers(src.headers),
         }

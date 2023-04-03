@@ -29,6 +29,11 @@ impl SubPageId {
         result.into()
     }
 
+    pub fn get_last_message_id(&self) -> MessageId {
+        let result = self.get_first_message_id_of_next_sub_page().get_value() - 1;
+        result.into()
+    }
+
     pub fn get_first_message_id_of_next_sub_page(&self) -> MessageId {
         let result = self.get_first_message_id().get_value() + SUB_PAGE_MESSAGES_AMOUNT;
         result.into()

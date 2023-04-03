@@ -69,6 +69,16 @@ impl Into<SubPageId> for PageId {
     }
 }
 
+pub trait AsSubPageId {
+    fn as_page_id(&self) -> SubPageId;
+}
+
+impl AsSubPageId for i64 {
+    fn as_page_id(&self) -> SubPageId {
+        SubPageId::new(*self)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{page_id::PageId, sub_page::*};

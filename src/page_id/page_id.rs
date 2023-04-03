@@ -101,6 +101,16 @@ impl<'s> Into<i64> for &'s PageId {
     }
 }
 
+pub trait AsPageId {
+    fn as_page_id(&self) -> PageId;
+}
+
+impl AsPageId for i64 {
+    fn as_page_id(&self) -> PageId {
+        PageId::new(*self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

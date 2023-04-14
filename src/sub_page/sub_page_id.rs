@@ -43,6 +43,15 @@ impl SubPageId {
         let first_message_id = self.get_first_message_id().get_value();
         first_message_id..first_message_id + SUB_PAGE_MESSAGES_AMOUNT
     }
+
+    pub fn is_my_message_id(&self, message_id: MessageId) -> bool {
+        let first_message_id = self.get_first_message_id().get_value();
+        let last_message_id = self.get_last_message_id().get_value();
+
+        let message_id = message_id.get_value();
+
+        message_id >= first_message_id && message_id <= last_message_id
+    }
 }
 
 impl std::fmt::Display for SubPageId {
@@ -162,5 +171,43 @@ mod tests {
         assert_eq!(2, map[&SubPageId::new(2)]);
         assert_eq!(3, map[&SubPageId::new(3)]);
         assert_eq!(4, map[&SubPageId::new(4)]);
+    }
+
+    #[test]
+    fn test_my_message_id() {
+        let sub_page = SubPageId::new(0);
+
+        assert!(sub_page.is_my_message_id(0.into()));
+        assert!(sub_page.is_my_message_id(999.into()));
+        assert!(!sub_page.is_my_message_id(1000.into()));
+
+        let sub_page = SubPageId::new(1);
+        assert!(sub_page.is_my_message_id(1000.into()));
+        assert!(sub_page.is_my_message_id(1999.into()));
+        assert!(!sub_page.is_my_message_id(2000.into()));
+    }
+
+    #[test]
+    fn test_first_message_id_of_the_next_page() {
+        let sub_page = SubPageId::new(0);
+
+        assert_eq!(
+            1000,
+            sub_page.get_first_message_id_of_next_sub_page().get_value()
+        );
+
+        let sub_page = SubPageId::new(1);
+
+        assert_eq!(
+            2000,
+            sub_page.get_first_message_id_of_next_sub_page().get_value()
+        );
+
+        let sub_page = SubPageId::new(2);
+
+        assert_eq!(
+            3000,
+            sub_page.get_first_message_id_of_next_sub_page().get_value()
+        );
     }
 }

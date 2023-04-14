@@ -21,6 +21,20 @@ impl<'s> GetMessageResult<'s> {
             GetMessageResult::GarbageCollected => panic!("Message is garbage collected"),
         }
     }
+
+    pub fn is_message_content(&self) -> bool {
+        match self {
+            GetMessageResult::Message(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_garbage_collected(&self) -> bool {
+        match self {
+            GetMessageResult::GarbageCollected => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct SubPage {
@@ -107,30 +121,34 @@ impl SubPage {
         None
     }
 
-    pub fn gc_messages(&mut self, min_message_id: MessageId) {
+    pub fn gc_messages(&mut self, min_message_id: MessageId) -> bool {
+        let first_message_id_of_next_page =
+            self.sub_page_id.get_first_message_id_of_next_sub_page();
+
+        if min_message_id.get_value() >= first_message_id_of_next_page.get_value() {
+            return true;
+        }
+
+        if min_message_id.get_value() < self.sub_page_id.get_first_message_id().get_value() {
+            return false;
+        }
+
         let first_message_id = self.get_first_message_id();
 
         if first_message_id.is_none() {
-            return;
+            return false;
         }
 
         let first_message_id = first_message_id.unwrap();
 
-        for msg_id in first_message_id.get_value()
-            ..self
-                .sub_page_id
-                .get_first_message_id_of_next_sub_page()
-                .get_value()
-        {
-            if min_message_id.get_value() <= msg_id {
-                break;
-            }
-
-            self.garbage_collected.enqueue(msg_id);
+        for msg_id in first_message_id.get_value()..min_message_id.get_value() {
             if let Some(message) = self.messages.remove(&msg_id) {
                 self.size_and_amount.removed(message.content.len());
+                self.garbage_collected.enqueue(msg_id);
             }
         }
+
+        false
     }
 
     pub fn persisted(&mut self, message_id: MessageId) {
@@ -161,6 +179,69 @@ mod tests {
             headers: None,
         });
 
-        sub_page.gc_messages(1.into());
+        let gc_full_page = sub_page.gc_messages(1.into());
+
+        assert!(!gc_full_page);
+
+        let result = sub_page.get_message(0.into());
+        assert!(result.is_garbage_collected());
+
+        let result = sub_page.get_message(1.into());
+        assert!(result.is_message_content());
+    }
+
+    #[test]
+    pub fn test_gc_messages_prev_page() {
+        let mut sub_page = SubPage::new(SubPageId::new(1));
+
+        sub_page.add_message(MySbMessageContent {
+            id: 1000.into(),
+            content: vec![],
+            time: DateTimeAsMicroseconds::now(),
+            headers: None,
+        });
+
+        sub_page.add_message(MySbMessageContent {
+            id: 1001.into(),
+            content: vec![],
+            time: DateTimeAsMicroseconds::now(),
+            headers: None,
+        });
+
+        let gc_full_page = sub_page.gc_messages(5.into());
+
+        assert!(!gc_full_page);
+
+        let result = sub_page.get_message(1000.into());
+        assert!(result.is_message_content());
+    }
+
+    #[test]
+    pub fn test_gc_messages_next_page() {
+        let mut sub_page = SubPage::new(SubPageId::new(1));
+
+        sub_page.add_message(MySbMessageContent {
+            id: 1000.into(),
+            content: vec![],
+            time: DateTimeAsMicroseconds::now(),
+            headers: None,
+        });
+
+        sub_page.add_message(MySbMessageContent {
+            id: 1001.into(),
+            content: vec![],
+            time: DateTimeAsMicroseconds::now(),
+            headers: None,
+        });
+
+        let gc_full_page = sub_page.gc_messages(9999.into());
+
+        assert!(gc_full_page);
+
+        let result = sub_page.get_message(1000.into());
+        assert!(result.is_message_content());
+
+        let result = sub_page.get_message(1001.into());
+        assert!(result.is_message_content());
     }
 }

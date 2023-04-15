@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use my_service_bus_abstractions::{queue_with_intervals::QueueWithIntervals, MessageId};
+use my_service_bus_abstractions::MessageId;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{messages::MySbMessageContent, MySbMessage};
@@ -40,7 +40,6 @@ impl<'s> GetMessageResult<'s> {
 pub struct SubPage {
     pub sub_page_id: SubPageId,
     pub messages: BTreeMap<i64, MySbMessage>,
-    pub to_persist: QueueWithIntervals,
     pub created: DateTimeAsMicroseconds,
 
     size_and_amount: SizeAndAmount,
@@ -53,7 +52,6 @@ impl SubPage {
             messages: BTreeMap::new(),
             created: DateTimeAsMicroseconds::now(),
             size_and_amount: SizeAndAmount::new(),
-            to_persist: QueueWithIntervals::new(),
         }
     }
 
@@ -71,11 +69,10 @@ impl SubPage {
             messages,
             created: DateTimeAsMicroseconds::now(),
             size_and_amount,
-            to_persist: QueueWithIntervals::new(),
         }
     }
 
-    pub fn new_message(&mut self, message: MySbMessage) -> Option<MySbMessage> {
+    pub fn add_message(&mut self, message: MySbMessage) -> Option<MySbMessage> {
         let message_id = message.get_message_id();
 
         if !self.sub_page_id.is_my_message_id(message_id) {
@@ -88,7 +85,6 @@ impl SubPage {
         }
 
         self.size_and_amount.added(message.get_content_size());
-        self.to_persist.enqueue(message_id.get_value());
 
         if let Some(old_message) = self.messages.insert(message_id.get_value(), message) {
             self.size_and_amount.removed(old_message.get_content_size());
@@ -153,10 +149,6 @@ impl SubPage {
 
         false
     }
-
-    pub fn persisted(&mut self, message_id: MessageId) {
-        let _ = self.to_persist.remove(message_id.get_value());
-    }
 }
 
 #[cfg(test)]
@@ -168,7 +160,7 @@ mod tests {
     fn test_gc_messages() {
         let mut sub_page = SubPage::new(SubPageId::new(0));
 
-        sub_page.new_message(
+        sub_page.add_message(
             MySbMessageContent {
                 id: 0.into(),
                 content: vec![],
@@ -178,7 +170,7 @@ mod tests {
             .into(),
         );
 
-        sub_page.new_message(
+        sub_page.add_message(
             MySbMessageContent {
                 id: 1.into(),
                 content: vec![],
@@ -203,7 +195,7 @@ mod tests {
     pub fn test_gc_messages_prev_page() {
         let mut sub_page = SubPage::new(SubPageId::new(1));
 
-        sub_page.new_message(
+        sub_page.add_message(
             MySbMessageContent {
                 id: 1000.into(),
                 content: vec![],
@@ -213,7 +205,7 @@ mod tests {
             .into(),
         );
 
-        sub_page.new_message(
+        sub_page.add_message(
             MySbMessageContent {
                 id: 1001.into(),
                 content: vec![],
@@ -235,7 +227,7 @@ mod tests {
     pub fn test_gc_messages_next_page() {
         let mut sub_page = SubPage::new(SubPageId::new(1));
 
-        sub_page.new_message(
+        sub_page.add_message(
             MySbMessageContent {
                 id: 1000.into(),
                 content: vec![],
@@ -245,7 +237,7 @@ mod tests {
             .into(),
         );
 
-        sub_page.new_message(
+        sub_page.add_message(
             MySbMessageContent {
                 id: 1001.into(),
                 content: vec![],

@@ -52,7 +52,7 @@ impl MessagesPage {
            result
        }
     */
-    pub fn new_message(&mut self, msg: MySbMessageContent) {
+    pub fn add_message(&mut self, msg: MySbMessageContent) {
         self.size += msg.content.len();
 
         self.to_be_persisted.enqueue(msg.id);

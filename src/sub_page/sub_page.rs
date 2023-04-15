@@ -81,6 +81,15 @@ impl SubPage {
     }
 
     pub fn add_message(&mut self, message: MySbMessageContent) -> Option<MySbMessageContent> {
+        if !self.sub_page_id.is_my_message_id(message.id) {
+            println!(
+                "Somehow we are uploading message_id {} to sub_page {}. Skipping message...",
+                message.id.get_value(),
+                self.sub_page_id.get_value()
+            );
+            return None;
+        }
+
         self.size_and_amount.added(message.content.len());
         self.to_persist.enqueue(message.id.get_value());
         self.loaded.enqueue(message.id.get_value());

@@ -9,7 +9,7 @@ pub enum MySbMessage {
 }
 
 impl MySbMessage {
-    pub fn content_size(&self) -> usize {
+    pub fn get_content_size(&self) -> usize {
         match self {
             MySbMessage::Loaded(msg) => msg.content.len(),
 
@@ -17,17 +17,10 @@ impl MySbMessage {
         }
     }
 
-    pub fn get_id(&self) -> MessageId {
+    pub fn get_message_id(&self) -> MessageId {
         match self {
             MySbMessage::Loaded(msg) => msg.id,
             MySbMessage::Missing(id) => *id,
-        }
-    }
-
-    pub fn is_garbage_collected(&self) -> bool {
-        match self {
-            MySbMessage::Loaded(_) => false,
-            MySbMessage::Missing(_) => false,
         }
     }
 
@@ -43,5 +36,11 @@ impl MySbMessage {
             MySbMessage::Loaded(msg) => msg,
             MySbMessage::Missing(id) => panic!("Message {} is missing", id.get_value()),
         }
+    }
+}
+
+impl Into<MySbMessage> for MySbMessageContent {
+    fn into(self) -> MySbMessage {
+        MySbMessage::Loaded(self)
     }
 }

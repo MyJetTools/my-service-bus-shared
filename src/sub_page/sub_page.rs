@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use my_service_bus_abstractions::{queue_with_intervals::QueueWithIntervals, MessageId};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::messages::MySbMessageContent;
+use crate::{messages::MySbMessageContent, MySbMessage};
 
 use super::{SizeAndAmount, SubPageId};
 
@@ -39,11 +39,10 @@ impl<'s> GetMessageResult<'s> {
 
 pub struct SubPage {
     pub sub_page_id: SubPageId,
-    pub messages: BTreeMap<i64, MySbMessageContent>,
+    pub messages: BTreeMap<i64, MySbMessage>,
     pub to_persist: QueueWithIntervals,
     pub created: DateTimeAsMicroseconds,
-    pub garbage_collected: QueueWithIntervals,
-    pub loaded: QueueWithIntervals,
+
     size_and_amount: SizeAndAmount,
 }
 
@@ -55,18 +54,16 @@ impl SubPage {
             created: DateTimeAsMicroseconds::now(),
             size_and_amount: SizeAndAmount::new(),
             to_persist: QueueWithIntervals::new(),
-            garbage_collected: QueueWithIntervals::new(),
-            loaded: QueueWithIntervals::new(),
         }
     }
 
-    pub fn restore(sub_page_id: SubPageId, messages: BTreeMap<i64, MySbMessageContent>) -> Self {
+    pub fn restore(sub_page_id: SubPageId, messages: BTreeMap<i64, MySbMessage>) -> Self {
         let mut size_and_amount = SizeAndAmount::new();
-        let mut loaded = QueueWithIntervals::new();
 
         for msg in messages.values() {
-            size_and_amount.added(msg.content.len());
-            loaded.enqueue(msg.id.get_value());
+            if let MySbMessage::Loaded(msg) = msg {
+                size_and_amount.added(msg.content.len());
+            }
         }
 
         Self {
@@ -75,27 +72,26 @@ impl SubPage {
             created: DateTimeAsMicroseconds::now(),
             size_and_amount,
             to_persist: QueueWithIntervals::new(),
-            garbage_collected: QueueWithIntervals::new(),
-            loaded,
         }
     }
 
-    pub fn add_message(&mut self, message: MySbMessageContent) -> Option<MySbMessageContent> {
-        if !self.sub_page_id.is_my_message_id(message.id) {
+    pub fn new_message(&mut self, message: MySbMessage) -> Option<MySbMessage> {
+        let message_id = message.get_message_id();
+
+        if !self.sub_page_id.is_my_message_id(message_id) {
             println!(
                 "Somehow we are uploading message_id {} to sub_page {}. Skipping message...",
-                message.id.get_value(),
+                message_id.get_value(),
                 self.sub_page_id.get_value()
             );
             return None;
         }
 
-        self.size_and_amount.added(message.content.len());
-        self.to_persist.enqueue(message.id.get_value());
-        self.loaded.enqueue(message.id.get_value());
+        self.size_and_amount.added(message.get_content_size());
+        self.to_persist.enqueue(message_id.get_value());
 
-        if let Some(old_message) = self.messages.insert(message.id.get_value(), message) {
-            self.size_and_amount.removed(old_message.content.len());
+        if let Some(old_message) = self.messages.insert(message_id.get_value(), message) {
+            self.size_and_amount.removed(old_message.get_content_size());
             return Some(old_message);
         }
 
@@ -104,13 +100,12 @@ impl SubPage {
 
     pub fn get_message(&self, msg_id: MessageId) -> GetMessageResult {
         if let Some(msg) = self.messages.get(msg_id.as_ref()) {
-            return GetMessageResult::Message(msg);
-        } else {
-            if self.garbage_collected.has_message(msg_id.get_value()) {
-                return GetMessageResult::GarbageCollected;
+            match msg {
+                MySbMessage::Loaded(msg) => GetMessageResult::Message(msg),
+                MySbMessage::Missing(_) => GetMessageResult::Missing,
             }
-
-            return GetMessageResult::Missing;
+        } else {
+            return GetMessageResult::GarbageCollected;
         }
     }
 
@@ -152,8 +147,7 @@ impl SubPage {
 
         for msg_id in first_message_id.get_value()..min_message_id.get_value() {
             if let Some(message) = self.messages.remove(&msg_id) {
-                self.size_and_amount.removed(message.content.len());
-                self.garbage_collected.enqueue(msg_id);
+                self.size_and_amount.removed(message.get_content_size());
             }
         }
 
@@ -174,19 +168,25 @@ mod tests {
     fn test_gc_messages() {
         let mut sub_page = SubPage::new(SubPageId::new(0));
 
-        sub_page.add_message(MySbMessageContent {
-            id: 0.into(),
-            content: vec![],
-            time: DateTimeAsMicroseconds::now(),
-            headers: None,
-        });
+        sub_page.new_message(
+            MySbMessageContent {
+                id: 0.into(),
+                content: vec![],
+                time: DateTimeAsMicroseconds::now(),
+                headers: None,
+            }
+            .into(),
+        );
 
-        sub_page.add_message(MySbMessageContent {
-            id: 1.into(),
-            content: vec![],
-            time: DateTimeAsMicroseconds::now(),
-            headers: None,
-        });
+        sub_page.new_message(
+            MySbMessageContent {
+                id: 1.into(),
+                content: vec![],
+                time: DateTimeAsMicroseconds::now(),
+                headers: None,
+            }
+            .into(),
+        );
 
         let gc_full_page = sub_page.gc_messages(1.into());
 
@@ -203,19 +203,25 @@ mod tests {
     pub fn test_gc_messages_prev_page() {
         let mut sub_page = SubPage::new(SubPageId::new(1));
 
-        sub_page.add_message(MySbMessageContent {
-            id: 1000.into(),
-            content: vec![],
-            time: DateTimeAsMicroseconds::now(),
-            headers: None,
-        });
+        sub_page.new_message(
+            MySbMessageContent {
+                id: 1000.into(),
+                content: vec![],
+                time: DateTimeAsMicroseconds::now(),
+                headers: None,
+            }
+            .into(),
+        );
 
-        sub_page.add_message(MySbMessageContent {
-            id: 1001.into(),
-            content: vec![],
-            time: DateTimeAsMicroseconds::now(),
-            headers: None,
-        });
+        sub_page.new_message(
+            MySbMessageContent {
+                id: 1001.into(),
+                content: vec![],
+                time: DateTimeAsMicroseconds::now(),
+                headers: None,
+            }
+            .into(),
+        );
 
         let gc_full_page = sub_page.gc_messages(5.into());
 
@@ -229,19 +235,25 @@ mod tests {
     pub fn test_gc_messages_next_page() {
         let mut sub_page = SubPage::new(SubPageId::new(1));
 
-        sub_page.add_message(MySbMessageContent {
-            id: 1000.into(),
-            content: vec![],
-            time: DateTimeAsMicroseconds::now(),
-            headers: None,
-        });
+        sub_page.new_message(
+            MySbMessageContent {
+                id: 1000.into(),
+                content: vec![],
+                time: DateTimeAsMicroseconds::now(),
+                headers: None,
+            }
+            .into(),
+        );
 
-        sub_page.add_message(MySbMessageContent {
-            id: 1001.into(),
-            content: vec![],
-            time: DateTimeAsMicroseconds::now(),
-            headers: None,
-        });
+        sub_page.new_message(
+            MySbMessageContent {
+                id: 1001.into(),
+                content: vec![],
+                time: DateTimeAsMicroseconds::now(),
+                headers: None,
+            }
+            .into(),
+        );
 
         let gc_full_page = sub_page.gc_messages(9999.into());
 

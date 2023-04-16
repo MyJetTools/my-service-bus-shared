@@ -1,5 +1,7 @@
 use my_service_bus_abstractions::MessageId;
 
+use crate::protobuf_models::MessageProtobufModel;
+
 use super::MySbMessageContent;
 
 #[derive(Debug, Clone)]
@@ -42,5 +44,11 @@ impl MySbMessage {
 impl Into<MySbMessage> for MySbMessageContent {
     fn into(self) -> MySbMessage {
         MySbMessage::Loaded(self)
+    }
+}
+
+impl Into<MySbMessage> for MessageProtobufModel {
+    fn into(self) -> MySbMessage {
+        MySbMessage::Loaded(self.into())
     }
 }

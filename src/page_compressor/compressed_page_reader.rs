@@ -1,20 +1,24 @@
-use std::io::{Cursor, Read};
+use std::io::Read;
 
-use my_service_bus_abstractions::MessageId;
+use rust_extensions::{AsSliceOrVec, SliceOrVecSeqReader};
 use zip::result::ZipError;
 
-use crate::protobuf_models::{MessageProtobufModel, MessagesProtobufModel};
+use crate::protobuf_models::MessageProtobufModel;
 
 use super::CompressedPageReaderError;
 
-pub struct CompressedPageReader {
-    zip_archive: zip::ZipArchive<Cursor<Vec<u8>>>,
+pub struct CompressedPageReader<'s> {
+    zip_archive: zip::ZipArchive<SliceOrVecSeqReader<'s, u8>>,
     file_index: usize,
 }
 
-impl CompressedPageReader {
-    pub fn new(zipped: Vec<u8>) -> Result<Self, ZipError> {
-        let zip_archive = zip::ZipArchive::new(Cursor::new(zipped))?;
+impl<'s> CompressedPageReader<'s> {
+    pub fn new(zipped: impl Into<AsSliceOrVec<'s, u8>>) -> Result<Self, ZipError> {
+        let zipped: AsSliceOrVec<'_, u8> = zipped.into();
+
+        let zipped: SliceOrVecSeqReader<'_, u8> = zipped.into();
+
+        let zip_archive = zip::ZipArchive::new(zipped)?;
         Ok(Self {
             zip_archive,
             file_index: 0,
@@ -25,42 +29,14 @@ impl CompressedPageReader {
         return self.zip_archive.len();
     }
 
-    pub fn unzip_messages(&mut self) -> Result<MessagesProtobufModel, CompressedPageReaderError> {
-        let result = self.decompress_as_single_file();
-
-        if let Ok(uncompressed) = &result {
-            let result = MessagesProtobufModel::parse(uncompressed)?;
-            return Ok(result);
-        }
-
-        let err = result.err().unwrap();
-
-        if let CompressedPageReaderError::InvalidSingleFileCompressedPage = &err {
-            let mut result = MessagesProtobufModel {
-                messages: Vec::new(),
-            };
-
-            while let Some(next_message) = self.get_next_message()? {
-                let msg = MessageProtobufModel::parse(&next_message.1)?;
-                result.messages.push(msg)
-            }
-
-            return Ok(result);
-        }
-
-        return Err(err);
-    }
-
     pub fn get_next_message(
         &mut self,
-    ) -> Result<Option<(MessageId, Vec<u8>)>, CompressedPageReaderError> {
+    ) -> Result<Option<MessageProtobufModel>, CompressedPageReaderError> {
         if self.file_index >= self.zip_archive.len() {
             return Ok(None);
         }
 
         let mut zip_file = self.zip_archive.by_index(self.file_index)?;
-
-        let message_id = zip_file.name().parse::<i64>()?;
 
         let mut result_buffer: Vec<u8> = Vec::new();
 
@@ -83,7 +59,7 @@ impl CompressedPageReader {
         }
         self.file_index += 1;
 
-        Ok(Some((message_id.into(), result_buffer)))
+        Ok(Some(MessageProtobufModel::parse(result_buffer.as_slice())?))
     }
 
     pub fn decompress_as_single_file(&mut self) -> Result<Vec<u8>, CompressedPageReaderError> {

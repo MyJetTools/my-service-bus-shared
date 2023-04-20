@@ -1,8 +1,9 @@
 use std::{io::Write, num::ParseIntError};
 
-use my_service_bus_abstractions::MessageId;
 use prost::DecodeError;
 use zip::result::ZipError;
+
+use crate::protobuf_models::MessageProtobufModel;
 
 use super::VecWriter;
 
@@ -22,8 +23,16 @@ impl CompressedPageBuilder {
         result
     }
 
-    pub fn add_message(&mut self, msg_id: MessageId, payload: &[u8]) -> Result<(), ZipError> {
-        let file_name = format!("{}", msg_id.get_value());
+    pub fn add_message(&mut self, model: &MessageProtobufModel) -> Result<(), ZipError> {
+        let message_id = model.get_message_id();
+        let file_name = format!("{}", message_id.get_value());
+
+        let mut payload = Vec::new();
+
+        model.serialize(&mut payload).unwrap();
+
+        #[cfg(test)]
+        println!("{}: {}", file_name, payload.len());
 
         self.zip_writer.start_file(file_name, self.options)?;
 
@@ -72,6 +81,8 @@ impl From<DecodeError> for CompressedPageReaderError {
 #[cfg(test)]
 mod tests {
 
+    use rust_extensions::date_time::DateTimeAsMicroseconds;
+
     use crate::page_compressor::CompressedPageReader;
 
     use super::*;
@@ -80,12 +91,23 @@ mod tests {
     fn test() {
         let mut builder = CompressedPageBuilder::new();
 
-        builder
-            .add_message(1.into(), vec![0u8, 1u8, 2u8].as_slice())
-            .unwrap();
-        builder
-            .add_message(2.into(), vec![3u8, 4u8, 5u8, 6u8].as_slice())
-            .unwrap();
+        let msg1 = MessageProtobufModel::new(
+            1.into(),
+            DateTimeAsMicroseconds::now(),
+            vec![0u8, 1u8, 2u8],
+            vec![],
+        );
+
+        builder.add_message(&msg1).unwrap();
+
+        let msg2 = MessageProtobufModel::new(
+            2.into(),
+            DateTimeAsMicroseconds::now(),
+            vec![3u8, 4u8, 5u8, 6u8],
+            vec![],
+        );
+
+        builder.add_message(&msg2).unwrap();
 
         let compressed = builder.get_payload().unwrap();
 
@@ -93,16 +115,24 @@ mod tests {
 
         assert_eq!(2, reader.get_files_amount());
 
-        let (msg_id, buf) = reader.get_next_message().unwrap().unwrap();
+        let result_msg = reader.get_next_message().unwrap().unwrap();
 
-        assert_eq!(1, msg_id.get_value());
-        assert_eq!(3, buf.len());
-        let (msg_id, buf) = reader.get_next_message().unwrap().unwrap();
+        assert_eq!(
+            msg1.get_message_id().get_value(),
+            result_msg.get_message_id().get_value()
+        );
+        assert_eq!(msg1.data.as_slice(), result_msg.data.as_slice());
 
-        assert_eq!(2, msg_id.get_value());
-        assert_eq!(4, buf.len());
-        let result = reader.get_next_message().unwrap();
+        let result_msg = reader.get_next_message().unwrap().unwrap();
 
-        assert_eq!(true, result.is_none());
+        assert_eq!(
+            msg2.get_message_id().get_value(),
+            result_msg.get_message_id().get_value()
+        );
+        assert_eq!(msg2.data.as_slice(), result_msg.data.as_slice());
+
+        let result_msg = reader.get_next_message().unwrap();
+
+        assert_eq!(true, result_msg.is_none());
     }
 }

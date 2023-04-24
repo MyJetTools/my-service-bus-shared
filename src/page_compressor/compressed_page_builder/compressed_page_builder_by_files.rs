@@ -1,7 +1,4 @@
-use std::{io::Write, num::ParseIntError};
-
-use prost::DecodeError;
-use zip::result::ZipError;
+use std::io::Write;
 
 use crate::{page_compressor::vec_writer::VecWriter, protobuf_models::MessageProtobufModel};
 
@@ -52,32 +49,6 @@ impl CompressedPageBuilderByFiles {
     pub fn get_payload(&mut self) -> Result<Vec<u8>, CompressedPageWriterError> {
         let result = self.zip_writer.finish()?;
         Ok(result.buf)
-    }
-}
-
-#[derive(Debug)]
-pub enum CompressedPageReaderError {
-    ParseIntError(ParseIntError),
-    ZipError(ZipError),
-    InvalidSingleFileCompressedPage,
-    DecodeError(DecodeError),
-}
-
-impl From<ZipError> for CompressedPageReaderError {
-    fn from(src: ZipError) -> Self {
-        Self::ZipError(src)
-    }
-}
-
-impl From<ParseIntError> for CompressedPageReaderError {
-    fn from(src: ParseIntError) -> Self {
-        Self::ParseIntError(src)
-    }
-}
-
-impl From<DecodeError> for CompressedPageReaderError {
-    fn from(src: DecodeError) -> Self {
-        Self::DecodeError(src)
     }
 }
 

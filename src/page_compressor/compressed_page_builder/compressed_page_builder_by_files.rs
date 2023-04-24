@@ -5,14 +5,14 @@ use zip::result::ZipError;
 
 use crate::protobuf_models::MessageProtobufModel;
 
-use super::VecWriter;
+use super::{vec_writer::VecWriter, CompressedPageWriterError};
 
-pub struct CompressedPageBuilder {
+pub struct CompressedPageBuilderByFiles {
     zip_writer: zip::ZipWriter<VecWriter>,
     options: zip::write::FileOptions,
 }
 
-impl CompressedPageBuilder {
+impl CompressedPageBuilderByFiles {
     pub fn new() -> Self {
         let result = Self {
             zip_writer: zip::ZipWriter::new(VecWriter::new()),
@@ -23,7 +23,10 @@ impl CompressedPageBuilder {
         result
     }
 
-    pub fn add_message(&mut self, model: &MessageProtobufModel) -> Result<(), ZipError> {
+    pub fn add_message(
+        &mut self,
+        model: &MessageProtobufModel,
+    ) -> Result<(), CompressedPageWriterError> {
         let message_id = model.get_message_id();
         let file_name = format!("{}", message_id.get_value());
 
@@ -46,7 +49,7 @@ impl CompressedPageBuilder {
         Ok(())
     }
 
-    pub fn get_payload(&mut self) -> Result<Vec<u8>, ZipError> {
+    pub fn get_payload(&mut self) -> Result<Vec<u8>, CompressedPageWriterError> {
         let result = self.zip_writer.finish()?;
         Ok(result.buf)
     }
@@ -88,8 +91,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
-        let mut builder = CompressedPageBuilder::new();
+    fn test_compressed_by_files() {
+        let mut builder = CompressedPageBuilderByFiles::new();
 
         let msg1 = MessageProtobufModel::new(
             1.into(),

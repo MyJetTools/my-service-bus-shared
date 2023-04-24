@@ -1,23 +1,19 @@
 use std::io::Read;
 
-use rust_extensions::{AsSliceOrVec, SliceOrVecSeqReader};
+use rust_extensions::SliceOrVecSeqReader;
 use zip::result::ZipError;
 
-use crate::protobuf_models::MessageProtobufModel;
+use crate::protobuf_models::{MessageProtobufModel, MessagesProtobufModel};
 
 use super::CompressedPageReaderError;
 
-pub struct CompressedPageReader<'s> {
+pub struct CompressedPageReaderByFiles<'s> {
     zip_archive: zip::ZipArchive<SliceOrVecSeqReader<'s, u8>>,
     file_index: usize,
 }
 
-impl<'s> CompressedPageReader<'s> {
-    pub fn new(zipped: impl Into<AsSliceOrVec<'s, u8>>) -> Result<Self, ZipError> {
-        let zipped: AsSliceOrVec<'_, u8> = zipped.into();
-
-        let zipped: SliceOrVecSeqReader<'_, u8> = zipped.into();
-
+impl<'s> CompressedPageReaderByFiles<'s> {
+    pub fn new(zipped: SliceOrVecSeqReader<'s, u8>) -> Result<Self, ZipError> {
         let zip_archive = zip::ZipArchive::new(zipped)?;
         Ok(Self {
             zip_archive,
@@ -62,7 +58,9 @@ impl<'s> CompressedPageReader<'s> {
         Ok(Some(MessageProtobufModel::parse(result_buffer.as_slice())?))
     }
 
-    pub fn decompress_as_single_file(&mut self) -> Result<Vec<u8>, CompressedPageReaderError> {
+    pub fn decompress_as_single_file(
+        &mut self,
+    ) -> Result<Option<MessagesProtobufModel>, CompressedPageReaderError> {
         let mut page_buffer: Vec<u8> = Vec::new();
 
         if self.zip_archive.len() == 0 {
@@ -72,8 +70,9 @@ impl<'s> CompressedPageReader<'s> {
         let mut zip_file = self.zip_archive.by_index(0)?;
 
         if zip_file.name() != "d" {
-            return Err(CompressedPageReaderError::InvalidSingleFileCompressedPage);
+            return Ok(None);
         }
+
         let mut buffer = [0u8; 1024 * 1024];
 
         loop {
@@ -91,6 +90,8 @@ impl<'s> CompressedPageReader<'s> {
             page_buffer.extend(&buffer[..read_size]);
         }
 
-        Ok(page_buffer)
+        let result: MessagesProtobufModel = MessagesProtobufModel::parse(page_buffer.as_slice())?;
+
+        Ok(Some(result))
     }
 }

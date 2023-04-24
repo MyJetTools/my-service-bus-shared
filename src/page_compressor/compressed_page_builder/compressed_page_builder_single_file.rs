@@ -1,8 +1,11 @@
 use std::io::Write;
 
-use crate::protobuf_models::{MessageProtobufModel, MessagesProtobufModel};
+use crate::{
+    page_compressor::vec_writer::VecWriter,
+    protobuf_models::{MessageProtobufModel, MessagesProtobufModel},
+};
 
-use super::{vec_writer::VecWriter, CompressedPageWriterError};
+use super::CompressedPageWriterError;
 
 pub struct CompressedPageBuilderSingleFile {
     messages: Option<Vec<MessageProtobufModel>>,

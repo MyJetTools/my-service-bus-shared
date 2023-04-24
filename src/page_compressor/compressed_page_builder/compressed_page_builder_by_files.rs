@@ -3,9 +3,9 @@ use std::{io::Write, num::ParseIntError};
 use prost::DecodeError;
 use zip::result::ZipError;
 
-use crate::protobuf_models::MessageProtobufModel;
+use crate::{page_compressor::vec_writer::VecWriter, protobuf_models::MessageProtobufModel};
 
-use super::{vec_writer::VecWriter, CompressedPageWriterError};
+use super::CompressedPageWriterError;
 
 pub struct CompressedPageBuilderByFiles {
     zip_writer: zip::ZipWriter<VecWriter>,
